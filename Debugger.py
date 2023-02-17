@@ -1,10 +1,9 @@
 import inspect
 import time
-from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Iterable, List, Literal, Tuple
-import math
 import numpy as np
 import matplotlib.pyplot as plt
+
 
 class Debugger:
     def __init__(self, categories=[], textual_debug: bool = False, visual_debug: bool = False,
@@ -13,11 +12,12 @@ class Debugger:
         self.__visual_debug: bool = visual_debug
         self.__textual_debug: bool = textual_debug
         self.__show_file: bool = show_file
+        self.__show_line: bool = show_line
         self.__categories: List[str] = categories
         self.__time_stack: List[Tuple[str, float]] = []
         self.__start_tabs: int = 0
-        self.__frame = frame
-        self.log_start('Debugger init', frame=frame)
+        self.__frame = inspect.getouterframes(inspect.currentframe())[1].frame
+        self.__log_start('Debugger init')
 
     def __del__(self):
         self.log_end()
@@ -30,13 +30,7 @@ class Debugger:
         else:
             return False
 
-    def __change_frame(self, frame=None):
-        if frame is not None:
-            self.__frame = frame
-
     def __get_line_info(self):
-        if self.__frame is None:
-            return ""
         file_name, line_num = self.__frame.f_code.co_filename, self.__frame.f_lineno
         result = '/{}'.format(
             file_name[file_name.rfind('\\')+1:]) if self.__show_file else ""
@@ -53,22 +47,25 @@ class Debugger:
         tabs = self.__start_tabs*'\t'
         print(tabs + line_info + ' ' + desc + ' ' + time_info)
 
-    def log_start(self, desc: str, categories: List[str] = [], frame=None):
-        self.__change_frame(frame)
+    def __log_start(self, desc: str, categories: List[str] = []):
         self.__time_stack.append((desc, time.time()))
         if self.__textual_debug and self.__is_in_categories(categories):
             self.__print(desc + ' started', self.__get_line_info())
         self.__start_tabs += 1
 
-    def log(self, desc: str, categories: List[str] = [], frame=None):
-        self.__change_frame(frame)
+    def log_start(self, desc: str, categories: List[str] = []):
+        self.__frame = inspect.getouterframes(inspect.currentframe())[1].frame
+        self.__log_start(desc, categories)
+
+    def log(self, desc: str, categories: List[str] = []):
+        self.__frame = inspect.getouterframes(inspect.currentframe())[1].frame
         last_desc, last_time = self.__time_stack[-1]
         if self.__textual_debug and self.__is_in_categories(categories):
             self.__print(desc, self.__get_line_info(),
                          Debugger.__get_time_info(time.time()-last_time))
 
-    def log_end(self, categories: List[str] = [], frame=None):
-        self.__change_frame(frame)
+    def log_end(self, categories: List[str] = []):
+        self.__frame = inspect.getouterframes(inspect.currentframe())[1].frame
         if self.__start_tabs == 0:
             raise Exception('There is no proccess to end it ' +
                             self.__get_line_info())
@@ -79,15 +76,15 @@ class Debugger:
             self.__print(last_desc + ' ended', self.__get_line_info(),
                          Debugger.__get_time_info(time.time()-last_time))
 
-    def log_image(self, desc: str, image: np.ndarray, categories: List[str] = [], frame=None):
-        self.log(desc, categories, frame)
+    def log_image(self, desc: str, image: np.ndarray, categories: List[str] = []):
+        self.log(desc, categories)
         if self.__visual_debug and self.__is_in_categories(categories):
             plt.imshow(image)
             plt.title(desc)
             plt.show()
 
-    def log_images(self, descs: List[str], images: List[np.ndarray], dim: Tuple=None, categories: List[str] = [], frame=None):
-        self.log('', categories, frame)
+    def log_images(self, descs: List[str], images: List[np.ndarray], dim: Tuple = None, categories: List[str] = []):
+        self.log('', categories)
         if self.__visual_debug and self.__is_in_categories(categories):
             fig = plt.figure()
             for i in range(len(images)):
@@ -99,17 +96,3 @@ class Debugger:
                 plt.axis('off')
                 plt.title(descs[i])
             plt.show()
-
-
-
-
-def main():
-    debugger = Debugger(time_debug=True, show_file=False,
-                        show_line=True, frame=inspect.currentframe())
-    debugger.log_start('PHASE1', frame=inspect.currentframe())
-    a = [i for i in range(1000000)]
-    debugger.log('PHASE2', frame=inspect.currentframe())
-    a = [i for i in range(1000000)]
-    debugger.log('PHASE3', frame=inspect.currentframe())
-    debugger.log_end(frame=inspect.currentframe())
-    del debugger
