@@ -1,1 +1,1 @@
-from landpy.Debugger import Debugger
+from landpy.debugger import Debugger
