@@ -53,13 +53,14 @@ class Debugger:
         self.__categories: Iterable[str] = categories
         self.__time_stack: List[Tuple[str, float]] = []
         self.__start_tabs: int = 0
-        self.__frame = inspect.getouterframes(inspect.currentframe())[1].frame
+        self.__images_to_show = []
+        self.__set_frame()
         self.__log_start('Debugger init')
 
     def __del__(self):
         if not self.__dubug:
             return
-        self.__frame = inspect.getouterframes(inspect.currentframe())[1].frame
+        self.__set_frame()
         self.__log_end()
 
     def log(self, desc: str, categories: Iterable[str] = []):
@@ -75,7 +76,7 @@ class Debugger:
         '''
         if not self.__dubug:
             return
-        self.__frame = inspect.getouterframes(inspect.currentframe())[1].frame
+        self.__set_frame()
         _, last_time = self.__time_stack[-1]
         if self.__textual_debug and self.__is_in_categories(categories):
 
@@ -93,7 +94,7 @@ class Debugger:
         '''
         if not self.__dubug:
             return
-        self.__frame = inspect.getouterframes(inspect.currentframe())[1].frame
+        self.__set_frame()
         self.__log_start(desc, categories)
 
     def log_end(self, categories: Iterable[str] = []):
@@ -105,10 +106,10 @@ class Debugger:
         '''
         if not self.__dubug:
             return
-        self.__frame = inspect.getouterframes(inspect.currentframe())[1].frame
+        self.__set_frame()
         self.__log_end(categories)
 
-    def log_image(self, desc: str, image: np.ndarray, categories: Iterable[str] = []):
+    def log_image(self, image: np.ndarray, desc: str, categories: Iterable[str] = []):
         '''
             This funtion is like a simple log but here, you show some picture too.
             - desc is the title of the image.
@@ -117,10 +118,10 @@ class Debugger:
         '''
         if not self.__dubug:
             return
-        self.log(desc, categories)
         if self.__visual_debug and self.__is_in_categories(categories):
             plt.imshow(image)
-            plt.title(desc)
+            if desc is not None and len(desc) > 0:
+                plt.title(desc)
             plt.show()
 
     def log_images(self, images: List[np.ndarray], descs: List[str] = None, dim: Tuple = None, categories: Iterable[str] = []):
@@ -135,7 +136,6 @@ class Debugger:
         '''
         if not self.__dubug:
             return
-        self.log('', categories)
         if self.__visual_debug and self.__is_in_categories(categories):
             fig = plt.figure()
             for i in range(len(images)):
@@ -145,9 +145,42 @@ class Debugger:
                     fig.add_subplot(dim[0], dim[1], i+1)
                 plt.imshow(images[i])
                 plt.axis('off')
-                if descs is not None and len(descs) > i:
+                if descs is not None and len(descs) > 0:
                     plt.title(descs[i])
             plt.show()
+
+    def save_image(self, image: np.ndarray, desc: str = None, categories: Iterable[str] = []):
+        if not self.__dubug:
+            return
+        if self.__visual_debug and self.__is_in_categories(categories):
+            self.log(desc+' saved!', categories)
+            self.__images_to_show.append({'desc':desc, 'image':image.copy()})
+    
+    def log_saved_images(self, dim: Tuple = None, categories: Iterable[str] = []):
+        if not self.__dubug:
+            return
+        if self.__visual_debug and self.__is_in_categories(categories):
+            fig = plt.figure()
+            n = len(self.__images_to_show)
+            for i in range(n):
+                if dim is None:
+                    fig.add_subplot(1, n, i+1)
+                else:
+                    fig.add_subplot(dim[0], dim[1], i+1)
+                image, desc = self.__images_to_show[i]['image'], self.__images_to_show[i]['desc']
+                plt.imshow(image)
+                del image
+                plt.axis('off')
+                if desc is not None and len(desc) > 0:
+                    plt.title(desc)
+            plt.show()
+            self.__images_to_show = []
+            
+
+    def __set_frame(self):
+        if self.__show_file or self.__show_line:
+            self.__frame = inspect.getouterframes(inspect.currentframe())[2].frame
+
 
     def __is_in_categories(self, categories: Iterable):
         if categories is None or len(categories) == 0 or self.__categories is None or len(self.__categories) == 0:
@@ -158,10 +191,15 @@ class Debugger:
             return False
 
     def __get_line_info(self):
-        file_name, line_num = self.__frame.f_code.co_filename, self.__frame.f_lineno
-        result = '/{}'.format(
-            file_name[file_name.rfind('\\')+1:]) if self.__show_file else ""
-        result += '/line {}'.format(line_num) if self.__show_line else ""
+        result = ''
+        if self.__show_file: 
+            file_name = self.__frame.f_code.co_filename
+            result += '/{}'.format(file_name[file_name.rfind('\\')+1:])
+
+        if self.__show_line:
+            line_num = self.__frame.f_lineno
+            result += '/line {}'.format(line_num)
+        
         result = result[1:]
         if len(result) == 0:
             return ""
