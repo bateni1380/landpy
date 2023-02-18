@@ -178,15 +178,15 @@ class Debugger:
         self.__time_stack.append((desc, time.time()))
         if self.__textual_debug and self.__is_in_categories(categories):
             self.__print(desc + ' started', self.__get_line_info())
-        self.__start_tabs += 1
+            self.__start_tabs += 1
 
     def __log_end(self, categories: Iterable[str] = []):
         if self.__start_tabs == 0:
             raise Exception('There is no proccess to end it ' +
                             self.__get_line_info())
-        self.__start_tabs -= 1
 
         last_desc, last_time = self.__time_stack.pop()
         if self.__textual_debug and self.__is_in_categories(categories):
+            self.__start_tabs -= 1
             self.__print(last_desc + ' ended', self.__get_line_info(),
                          Debugger.__get_time_info(time.time()-last_time))
