@@ -1,8 +1,9 @@
 from typing import Callable, List, Tuple, Dict, Literal, Any, Iterable, Union
 import time
 from landpy import Debugger, Land
-''', MarksLand, QuadMarks, SquadMarks, Filter, HeatLand
-from landpy import zero_heat, full_heat'''
+''', MarksLand, QuadMarks, SquadMarks, Filter, HeatLand'''
+from landpy import HeatLand
+from landpy.heat import zero_heat, full_heat
 import numpy as np
 import cv2
 import inspect
@@ -26,6 +27,10 @@ class ImageLand(Land):
         self._set_data(image.astype('uint8'))
 
         self._debugger.log_end(categories=log_categories)
+
+    def get_image(self):
+        self._debugger.log('Image returned!', categories=['ImageLand.get_image', 'ImageLand'])
+        return self._get_data()
 
     def __make_exception(image, pars, debugger):
         debugger.log('save_trace parameter was false so you can\'t retrace!', categories=[
@@ -127,7 +132,6 @@ class ImageLand(Land):
 
     def __rotate_back(self, pars, save_trace=True):
         pass
-
 
 '''
     def zoom(self, quadrilateral: Union[SquadMarks, QuadMarks], save_trace=True):

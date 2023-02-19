@@ -33,14 +33,25 @@ class Land:
             self._debugger.log('Trace list is empty!', categories=['Exception', 'Land.retrace', 'Land'])
             raise Exception('Trace list is empty!')
             
-        inv_fun, pars = self.__trace[-1]['inv_fun'], self.__trace[-1]['pars'] 
+        last_call = self.__trace.pop()
+        inv_fun, pars = last_call['inv_fun'], last_call['pars'] 
         self._flow_data = inv_fun(self._flow_data, pars, self._debugger)
         
         self._debugger.log_end(categories=['Land.retrace', 'Land'])
     
     def __copy_trace(self):
-        # TODO........................
-        return self.__trace
+        copied_trace = []
+        for item in self.__trace:
+            copied_pars = {}
+            for key in item['pars']:
+                if hasattr(item['pars'][key], 'copy'):
+                    copied_pars.update({key:item['pars'][key].copy()})
+                else:
+                    copied_pars.update({key:item['pars'][key]})
+            copied_trace.append({'inv_fun':item['inv_fun'], 'pars':copied_pars})
+
+        flow_data = self._flow_data.copy() if hasattr(self._flow_data, 'copy') else self._flow_data
+        return {'trace':copied_trace, 'flow_data':flow_data}
     
     def make_checkpoint(self):
         self._debugger.log_start('Making checkpoint version {} (copying trace)'.format(self.__checkpoint_version+1), categories=['Land.make_checkpoint', 'Land'])
@@ -51,31 +62,34 @@ class Land:
 
         self.__checkpoint_history.append(self.__copy_trace())
         self.__checkpoint_version += 1
-        # TODO........................
+
         self._debugger.log_end(categories=['Land.make_checkpoint', 'Land'])
 
     def undo(self):
+        self.__trace = self.__checkpoint_history[self.__checkpoint_version]['trace']
+        self._flow_data = self.__checkpoint_history[self.__checkpoint_version]['flow_data']
         self.__checkpoint_version -= 1
         self._debugger.log('Land undoed to version {}!'.format(self.__checkpoint_version), categories=['Land.undo', 'Land'])
         
     def redo(self):
         self.__checkpoint_version += 1
+        self.__trace = self.__checkpoint_history[self.__checkpoint_version]['trace']
+        self._flow_data = self.__checkpoint_history[self.__checkpoint_version]['flow_data']
         self._debugger.log('Land redoed to version {}!'.format(self.__checkpoint_version), categories=['Land.undo', 'redo'])
     
     def clear_trace(self):
         self._debugger.log_start('Clearing trace', categories=['Land.clear_trace', 'Land'])
-        self.make_checkpoint(self._debugger)
+        self.make_checkpoint()
         self.__trace = []
         self._debugger.log_end(categories=['Land.clear_trace', 'Land'])
         
     def clear_checkpoint_history(self):
         self._debugger.log_start('Clearing checkpoint history', categories=['Land.clear_checkpoint_history', 'Land'])
+        del self.__checkpoint_history
         self.__checkpoint_history = []
         self._debugger.log_end(categories=['Land.clear_checkpoint_history', 'Land'])\
         
     def _get_data(self):
-        self._debugger.log_start('Gending data from land', categories=['Land._get_data', 'Land'], start_process=True)
-        data = self._flow_data
-        self._debugger.log_end(categories=['Land._get_data', 'Land'])
-        return data
+        self._debugger.log('flow_data returned!', categories=['Land._get_data', 'Land'])
+        return self._flow_data
     
