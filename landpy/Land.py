@@ -4,11 +4,11 @@ import inspect
 
 class Land:
     def __init__(self, debugger=Debugger(debug=False)):
+        self._debugger = debugger
         self.__trace: List[Dict[Literal['inv_fun', 'pars'], Tuple[Callable, Dict]]] = []
         self._flow_data: Any = None
         self.__checkpoint_history: List[Dict[Literal['trace', 'flow_data'], Tuple[List, Any]]] = []
         self.__checkpoint_version: int = -1
-        self._debugger = debugger
     
     def __del__(self):
         del self._debugger
@@ -25,7 +25,12 @@ class Land:
         self._debugger.log_start('Making trace', categories=['Land._make_trace', 'Land'])
         self.__trace.append({'inv_fun': inv_fun, 'pars': pars})
         self._debugger.log_end(categories=['Land._make_trace', 'Land'])
-     
+    
+    def _make_exception(image, pars, debugger):
+        log_categories = ['Exception', 'Land._make_exception', 'Land']
+        debugger.log('save_trace parameter was false so you can\'t retrace!', categories=log_categories)
+        raise Exception('save_trace parameter was false so you can\'t retrace!')
+    
     def retrace(self):
         self._debugger.log_start('Retracing', categories=['Land.retrace', 'Land'])
         

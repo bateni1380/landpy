@@ -54,6 +54,7 @@ class Debugger:
         self.__time_stack: List[Tuple[str, float]] = []
         self.__start_tabs: int = 0
         self.__images_to_show = []
+        self.__scatters_to_show = []
         self.__set_frame()
         self.__log_start('Debugger init')
 
@@ -176,7 +177,58 @@ class Debugger:
             plt.show()
             self.__images_to_show = []
             
+    def log_sctters(self, marks: List[np.ndarray], descs: List[str] = None, dim: Tuple = None, categories: Iterable[str] = []):
+        '''
+            This funtion is like a simple log but here, you feed some marks as
+                a list of np arrays.
+            - marks is the list of np arrays.
+            - descs is title of those scatter plots.
+            - dim is dimentions of the grid that you want to see the pictures in it (by default,
+                log_marks show the scatters in a 1-row grid)
+            - categories is like categories in log function.
+        '''
+        if not self.__dubug:
+            return
+        if self.__visual_debug and self.__is_in_categories(categories):
+            fig = plt.figure()
+            for i in range(len(marks)):
+                if dim is None:
+                    fig.add_subplot(1, len(marks), i+1)
+                else:
+                    fig.add_subplot(dim[0], dim[1], i+1)
+                plt.scatter(marks[i,0], marks[i,1])
+                plt.axis('off')
+                if descs is not None and len(descs) > 0:
+                    plt.title(descs[i])
+            plt.show()
 
+    def save_sctter(self, mark: np.ndarray, desc: str = None, categories: Iterable[str] = []):
+        if not self.__dubug:
+            return
+        if self.__visual_debug and self.__is_in_categories(categories):
+            self.log(desc+' saved!', categories)
+            self.__scatters_to_show.append({'desc':desc, 'mark':mark.copy()})
+    
+    def log_saved_sctters(self, dim: Tuple = None, categories: Iterable[str] = []):
+        if not self.__dubug:
+            return
+        if self.__visual_debug and self.__is_in_categories(categories):
+            fig = plt.figure()
+            n = len(self.__scatters_to_show)
+            for i in range(n):
+                if dim is None:
+                    fig.add_subplot(1, n, i+1)
+                else:
+                    fig.add_subplot(dim[0], dim[1], i+1)
+                mark, desc = self.__scatters_to_show[i]['mark'], self.__scatters_to_show[i]['desc']
+                plt.scatter(mark[:,0], mark[:,1])
+                del mark
+                if desc is not None and len(desc) > 0:
+                    plt.title(desc)
+            plt.show()
+            self.__scatters_to_show = []
+
+    
     def __set_frame(self):
         if self.__show_file or self.__show_line:
             self.__frame = inspect.getouterframes(inspect.currentframe())[2].frame

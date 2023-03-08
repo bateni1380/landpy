@@ -9,10 +9,10 @@ import cv2
 import inspect
 import matplotlib.pyplot as plt
 from PIL import Image
-
+np.row_stack
 
 class ImageLand(Land):
-    def __init__(self, debugger: Debugger):
+    def __init__(self, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
 
     def set_image(self, image: np.ndarray, mode='rgb'):
@@ -31,12 +31,6 @@ class ImageLand(Land):
     def get_image(self):
         self._debugger.log('Image returned!', categories=['ImageLand.get_image', 'ImageLand'])
         return self._get_data()
-
-    def __make_exception(image, pars, debugger):
-        debugger.log('save_trace parameter was false so you can\'t retrace!', categories=[
-            'Exception', 'ImageLand.__make_exception', 'ImageLand'])
-        raise Exception(
-            'save_trace parameter was false so you can\'t retrace!')
 
     def rotate(self, angle: float, center: Tuple = None, save_trace=True):
         height, width = self._flow_data.shape[:2]
@@ -61,7 +55,7 @@ class ImageLand(Land):
             self._make_trace(ImageLand.__rotate_back, {
                              'angle': angle, 'center': center})
         else:
-            self._make_trace(ImageLand.__make_exception, {})
+            self._make_trace(Land._make_exception, {})
 
         self._debugger.log_end(categories=log_categories)
         self._debugger.log_saved_images(categories=log_categories)
@@ -99,7 +93,7 @@ class ImageLand(Land):
                                                         'height': image.height,
                                                         'mode': image.mode})
         else:
-            self._make_trace(ImageLand.__make_exception, {})
+            self._make_trace(Land._make_exception, {})
 
         self._debugger.save_image(
             self._flow_data, 'Image before reshape!', categories=log_categories)
@@ -130,8 +124,6 @@ class ImageLand(Land):
         
         return image
 
-    def __rotate_back(self, pars, save_trace=True):
-        pass
 
 '''
     def zoom(self, quadrilateral: Union[SquadMarks, QuadMarks], save_trace=True):
