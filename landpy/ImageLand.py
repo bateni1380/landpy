@@ -1,7 +1,6 @@
 from typing import Callable, List, Tuple, Dict, Literal, Any, Iterable, Union
 import time
-from landpy import Debugger, Land
-''', MarksLand, QuadMarks, SquadMarks, Filter, HeatLand'''
+from landpy import Debugger, Land, MarksLand, Filter, HeatLand
 from landpy import HeatLand
 from landpy.heat import zero_heat, full_heat
 import numpy as np
@@ -15,10 +14,14 @@ class ImageLand(Land):
     def __init__(self, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
 
-    def set_image(self, image: np.ndarray, mode='rgb'):
+    def set_image(self, image: np.ndarray):
         log_categories = ['ImageLand.set_data', 'ImageLand']
         self._debugger.log_start(
             'Sending image to flow_data', categories=log_categories)
+        
+        if type(image) is Image:
+            image = np.array(image)
+
         self._debugger.log_image(
             image, 'Sent Image', categories=log_categories)
 
@@ -27,10 +30,15 @@ class ImageLand(Land):
         self._set_data(image.astype('uint8'))
 
         self._debugger.log_end(categories=log_categories)
+        return self
 
     def get_image(self):
         self._debugger.log('Image returned!', categories=['ImageLand.get_image', 'ImageLand'])
         return self._get_data()
+
+    def show(self):
+        self._debugger.log('Showing the image.', ['ImageLand.show', 'ImageLand'])
+        Debugger(visual_debug=True).log_image(self._flow_data)
 
     def rotate(self, angle: float, center: Tuple = None, save_trace=True):
         height, width = self._flow_data.shape[:2]
@@ -123,10 +131,10 @@ class ImageLand(Land):
         debugger.log_saved_images(categories=log_categories)
         
         return image
-
-
 '''
-    def zoom(self, quadrilateral: Union[SquadMarks, QuadMarks], save_trace=True):
+
+    ################################# TODO #################################
+    def zoom(self, quadrilateral: Union[1, 1], save_trace=True):
         pass
 
     def __zoom_back(self, pars, save_trace=True):
@@ -138,5 +146,5 @@ class ImageLand(Land):
         pass
 
     def implant_image(self, src_land: MarksLand, plant_land: MarksLand, plant_img: np.ndarray):
-        pass  # challenge
-    '''
+        pass  # challenge'''
+

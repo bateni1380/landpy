@@ -2,6 +2,7 @@ from landpy import Debugger, Land
 from typing import Callable, List, Tuple, Dict, Literal, Any, Iterable, Union
 
 import numpy as np
+import matplotlib.pylab as plt
 from PIL import Image, ImageDraw, ImageOps
 import cv2
 np.zeros
@@ -10,7 +11,6 @@ np.zeros
 class MarksLand(Land):
     def __init__(self, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
-        self._debugger = debugger
 
     def set_marks(self, x, y):
         log_categories = ['MarksLand.set_flow_data', 'MarksLand']
@@ -18,6 +18,14 @@ class MarksLand(Land):
         marks = self.__xy_to_flow_data(x, y)
         self._set_data(marks)
         self._debugger.log_end(categories=log_categories)
+        return self
+
+    def get_marks(self):
+        pass
+
+    def show(self):
+        self._debugger.log('Showing marks.', ['MarksLand.show', 'MarksLand'])
+        Debugger(visual_debug=True).log_scatter(self._flow_data)
 
     def __xy_to_flow_data(self, x, y):
         log_categories = ['MarksLand.__check_flow_data', 'MarksLand']
@@ -37,20 +45,6 @@ class MarksLand(Land):
         marks = np.hstack([x,y])
         return marks
     
-    def marks_to_image(marks):
-        width, height = 500, 500
-        img = Image.new('RGB', (width, height), color='white')
-        draw = ImageDraw.Draw(img)
-
-        # Draw the scatter plot
-        for i in range(marks.shape[0]):
-            x_i = int(marks[i,0] * (width - 1))
-            y_i = int(marks[i,1] * (height - 1))
-            draw.ellipse([(x_i - 3, y_i - 3), (x_i + 3, y_i + 3)], fill='blue')
-
-        img = ImageOps.expand(img, border=(2, 2), fill=(0,0,0))
-        return img
-    
     def rotate(self, angle: float, center: Tuple = None, save_trace=True):
         log_categories = ['MarksLand.rotate', 'MarksLand']
         self._debugger.log_start('Rotating marks!', categories=log_categories)
@@ -62,14 +56,14 @@ class MarksLand(Land):
         rotation_matrix = cv2.getRotationMatrix2D(
             center=center, angle=-angle, scale=1)
         
-        self._debugger.save_sctter(self._flow_data, 'Marks before rotation!', categories=log_categories)
+        self._debugger.save_scatter(self._flow_data, 'Marks before rotation!', categories=log_categories)
         
         n = self._flow_data.shape[0]
         homog_points = np.hstack((self._flow_data, np.ones((n, 1))))
         rotated_points = np.dot(rotation_matrix, homog_points.T).T[:, :2]
 
         self._set_data(rotated_points)
-        self._debugger.save_sctter(self._flow_data, 'Marks after rotation!', categories=log_categories)
+        self._debugger.save_scatter(self._flow_data, 'Marks after rotation!', categories=log_categories)
 
         if save_trace:
             self._make_trace(MarksLand.__rotate_back, {
@@ -78,7 +72,7 @@ class MarksLand(Land):
             self._make_trace(Land._make_exception, {})
 
         self._debugger.log_end(categories=log_categories)
-        self._debugger.log_saved_sctters(categories=log_categories)  
+        self._debugger.log_saved_scatters(categories=log_categories)  
 
     def __rotate_back(marks, pars: Dict, debugger: Debugger):
         log_categories = ['MarksLand.__rotate_back', 'MarksLand']
@@ -92,15 +86,51 @@ class MarksLand(Land):
         rotation_matrix = cv2.getRotationMatrix2D(
             center=center, angle=angle, scale=1)
         
-        debugger.save_sctter(marks, 'Marks before rotation back!', categories=log_categories)
+        debugger.save_scatter(marks, 'Marks before rotation back!', categories=log_categories)
 
         n = marks.shape[0]
         homog_points = np.hstack((marks, np.ones((n, 1))))
         rotated_points = np.dot(rotation_matrix, homog_points.T).T[:, :2]
 
-        debugger.save_sctter(rotated_points, 'Marks after rotation back!', categories=log_categories)
+        debugger.save_scatter(rotated_points, 'Marks after rotation back!', categories=log_categories)
 
         debugger.log_end(categories=log_categories)
-        debugger.log_saved_sctters(categories=log_categories)  
+        debugger.log_saved_scatters(categories=log_categories)  
         
         return rotated_points
+
+    def to_square(self):
+        from landpy import SquareMarks
+        sm = SquareMarks(self._debugger).set_marks(minX=np.min(self._flow_data[:,0]),
+                                                   maxX=np.max(self._flow_data[:,0]),
+                                                   minY=np.min(self._flow_data[:,1]),
+                                                   maxY=np.max(self._flow_data[:,1]))
+        return sm
+
+    ################################# TODO #################################
+    def zoom():
+        pass
+
+    def __zoom_back():
+        pass
+
+    def spread():
+        pass
+
+    def spread_back():
+        pass
+
+    def __add__():
+        pass
+
+    def __sub__():
+        pass
+
+    def __getitem__():
+        pass 
+
+    def to_list():
+        pass
+
+
+

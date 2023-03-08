@@ -5,4 +5,4 @@ from landpy.ImageLand import ImageLand
 from landpy.HeatLand import HeatLand
 from landpy.MarksLand import MarksLand
 from landpy.QuadMarks import QuadMarks
-from landpy.SquadMarks import SquadMarks
+from landpy.SquareMarks import SquareMarks

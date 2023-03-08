@@ -20,13 +20,18 @@ class Land:
         self._debugger.log_start('Sending data to flow_data', categories=['Land._set_data', 'Land'])
         self._flow_data = data
         self._debugger.log_end(categories=['Land._set_data', 'Land'])
+        return self
+    
+    def _get_data(self):
+        self._debugger.log('flow_data returned!', categories=['Land._get_data', 'Land'])
+        return self._flow_data
     
     def _make_trace(self,  inv_fun: Callable, pars: Dict):
         self._debugger.log_start('Making trace', categories=['Land._make_trace', 'Land'])
         self.__trace.append({'inv_fun': inv_fun, 'pars': pars})
         self._debugger.log_end(categories=['Land._make_trace', 'Land'])
     
-    def _make_exception(image, pars, debugger):
+    def _make_exception(data, pars, debugger):
         log_categories = ['Exception', 'Land._make_exception', 'Land']
         debugger.log('save_trace parameter was false so you can\'t retrace!', categories=log_categories)
         raise Exception('save_trace parameter was false so you can\'t retrace!')
@@ -94,7 +99,3 @@ class Land:
         self.__checkpoint_history = []
         self._debugger.log_end(categories=['Land.clear_checkpoint_history', 'Land'])\
         
-    def _get_data(self):
-        self._debugger.log('flow_data returned!', categories=['Land._get_data', 'Land'])
-        return self._flow_data
-    

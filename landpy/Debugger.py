@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
+
 class Debugger:
     '''
         This class is a class to observe status of the code. 
@@ -61,8 +62,9 @@ class Debugger:
     def __del__(self):
         if not self.__dubug:
             return
-        self.__set_frame()
-        self.__log_end()
+        if self.__start_tabs > 0:
+            self.__set_frame()
+            self.__log_end()
 
     def log(self, desc: str, categories: Iterable[str] = []):
         '''
@@ -110,21 +112,6 @@ class Debugger:
         self.__set_frame()
         self.__log_end(categories)
 
-    def log_image(self, image: np.ndarray, desc: str, categories: Iterable[str] = []):
-        '''
-            This funtion is like a simple log but here, you show some picture too.
-            - desc is the title of the image.
-            - image is the image that you want to show as a np array format.
-            - categories is like categories in log function.
-        '''
-        if not self.__dubug:
-            return
-        if self.__visual_debug and self.__is_in_categories(categories):
-            plt.imshow(image)
-            if desc is not None and len(desc) > 0:
-                plt.title(desc)
-            plt.show()
-
     def log_images(self, images: List[np.ndarray], descs: List[str] = None, dim: Tuple = None, categories: Iterable[str] = []):
         '''
             This funtion is like a simple log but here, you feed some pictures as
@@ -150,92 +137,97 @@ class Debugger:
                     plt.title(descs[i])
             plt.show()
 
-    def save_image(self, image: np.ndarray, desc: str = None, categories: Iterable[str] = []):
+    def log_image(self, image: np.ndarray, desc: str = "", categories: Iterable[str] = []):
+        '''
+            This funtion is like a simple log but here, you show some picture too.
+            - desc is the title of the image.
+            - image is the image that you want to show as a np array format.
+            - categories is like categories in log function.
+        '''
+        if not self.__dubug:
+            return
+        if self.__visual_debug and self.__is_in_categories(categories):
+            self.log_images([image], [desc], None, categories)
+
+    def save_image(self, image: np.ndarray, desc: str = "", categories: Iterable[str] = []):
         if not self.__dubug:
             return
         if self.__visual_debug and self.__is_in_categories(categories):
             self.log(desc+' saved!', categories)
-            self.__images_to_show.append({'desc':desc, 'image':image.copy()})
-    
+            self.__images_to_show.append({'desc': desc, 'image': image.copy()})
+
     def log_saved_images(self, dim: Tuple = None, categories: Iterable[str] = []):
         if not self.__dubug:
             return
         if self.__visual_debug and self.__is_in_categories(categories):
-            fig = plt.figure()
-            n = len(self.__images_to_show)
-            for i in range(n):
-                if dim is None:
-                    fig.add_subplot(1, n, i+1)
-                else:
-                    fig.add_subplot(dim[0], dim[1], i+1)
-                image, desc = self.__images_to_show[i]['image'], self.__images_to_show[i]['desc']
-                plt.imshow(image)
-                del image
-                plt.axis('off')
-                if desc is not None and len(desc) > 0:
-                    plt.title(desc)
-            plt.show()
+            images = [self.__images_to_show[i]['image']
+                      for i in range(len(self.__images_to_show))]
+            descs = [self.__images_to_show[i]['desc']
+                     for i in range(len(self.__images_to_show))]
+            self.log_images(images, descs, dim, categories)
+            for i in range(len(self.__images_to_show)):
+                del self.__images_to_show[i]['image']
             self.__images_to_show = []
-            
-    def log_sctters(self, marks: List[np.ndarray], descs: List[str] = None, dim: Tuple = None, categories: Iterable[str] = []):
+
+    def log_scatters(self, scatters: List[np.ndarray], descs: List[str] = None, dim: Tuple = None, categories: Iterable[str] = []):
         '''
-            This funtion is like a simple log but here, you feed some marks as
+            This funtion is like a simple log but here, you feed some scatters as
                 a list of np arrays.
-            - marks is the list of np arrays.
+            - scatters is the list of np arrays.
             - descs is title of those scatter plots.
             - dim is dimentions of the grid that you want to see the pictures in it (by default,
-                log_marks show the scatters in a 1-row grid)
+                log_scatters show the scatters in a 1-row grid)
             - categories is like categories in log function.
         '''
         if not self.__dubug:
             return
         if self.__visual_debug and self.__is_in_categories(categories):
             fig = plt.figure()
-            for i in range(len(marks)):
+            for i in range(len(scatters)):
                 if dim is None:
-                    fig.add_subplot(1, len(marks), i+1)
+                    fig.add_subplot(1, len(scatters), i+1)
                 else:
                     fig.add_subplot(dim[0], dim[1], i+1)
-                plt.scatter(marks[i,0], marks[i,1])
-                plt.axis('off')
-                if descs is not None and len(descs) > 0:
+                rect = patches.Rectangle(
+                    (0, 0), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
+                plt.gca().add_patch(rect)
+                plt.scatter(scatters[i][:, 0], scatters[i][:, 1])
+                plt.axis('equal')
+                if descs[i] is not None and len(descs[i]) > 0:
                     plt.title(descs[i])
             plt.show()
 
-    def save_sctter(self, mark: np.ndarray, desc: str = None, categories: Iterable[str] = []):
+    def log_scatter(self, scatter: np.ndarray, desc: str = "", categories: Iterable[str] = []):
+        if not self.__dubug:
+            return
+        if self.__visual_debug and self.__is_in_categories(categories):
+            self.log_scatters([scatter], [desc], None, categories)
+
+    def save_scatter(self, mark: np.ndarray, desc: str = "", categories: Iterable[str] = []):
         if not self.__dubug:
             return
         if self.__visual_debug and self.__is_in_categories(categories):
             self.log(desc+' saved!', categories)
-            self.__scatters_to_show.append({'desc':desc, 'mark':mark.copy()})
-    
-    def log_saved_sctters(self, dim: Tuple = None, categories: Iterable[str] = []):
+            self.__scatters_to_show.append(
+                {'desc': desc, 'scatter': mark.copy()})
+
+    def log_saved_scatters(self, dim: Tuple = None, categories: Iterable[str] = []):
         if not self.__dubug:
             return
         if self.__visual_debug and self.__is_in_categories(categories):
-            fig = plt.figure()
-            n = len(self.__scatters_to_show)
-            for i in range(n):
-                if dim is None:
-                    fig.add_subplot(1, n, i+1)
-                else:
-                    fig.add_subplot(dim[0], dim[1], i+1)
-                mark, desc = self.__scatters_to_show[i]['mark'], self.__scatters_to_show[i]['desc']
-                rect = patches.Rectangle((0, 0), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
-                plt.gca().add_patch(rect)
-                plt.scatter(mark[:,0], mark[:,1])
-                plt.axis('equal')
-                del mark
-                if desc is not None and len(desc) > 0:
-                    plt.title(desc)
-            plt.show()
+            scatters = [self.__images_to_show[i]['scatter']
+                        for i in range(len(self.__scatters_to_show))]
+            descs = [self.__images_to_show[i]['desc']
+                     for i in range(len(self.__scatters_to_show))]
+            self.log_scatters(scatters, descs, dim, categories)
+            for i in range(len(self.__scatters_to_show)):
+                del self.__scatters_to_show[i]['scatter']
             self.__scatters_to_show = []
 
-    
     def __set_frame(self):
         if self.__show_file or self.__show_line:
-            self.__frame = inspect.getouterframes(inspect.currentframe())[2].frame
-
+            self.__frame = inspect.getouterframes(
+                inspect.currentframe())[2].frame
 
     def __is_in_categories(self, categories: Iterable):
         if categories is None or len(categories) == 0 or self.__categories is None or len(self.__categories) == 0:
@@ -247,14 +239,14 @@ class Debugger:
 
     def __get_line_info(self):
         result = ''
-        if self.__show_file: 
+        if self.__show_file:
             file_name = self.__frame.f_code.co_filename
             result += '/{}'.format(file_name[file_name.rfind('\\')+1:])
 
         if self.__show_line:
             line_num = self.__frame.f_lineno
             result += '/line {}'.format(line_num)
-        
+
         result = result[1:]
         if len(result) == 0:
             return ""
