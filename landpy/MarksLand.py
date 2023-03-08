@@ -55,21 +55,20 @@ class MarksLand(Land):
         log_categories = ['MarksLand.rotate', 'MarksLand']
         self._debugger.log_start('Rotating marks!', categories=log_categories)
 
-        height, width = np.max(self._flow_data[:, 0])-np.min(
-            self._flow_data[:, 0]), np.max(self._flow_data[:, 1])-np.min(self._flow_data[:, 1])
+        #height, width = np.max(self._flow_data[:, 0])-np.min(
+        #    self._flow_data[:, 0]), np.max(self._flow_data[:, 1])-np.min(self._flow_data[:, 1])
         if center == None:
-            center = (int(width/2), int(height/2))
+            center = (0.5, 0.5)
         rotation_matrix = cv2.getRotationMatrix2D(
-            center=center, angle=angle, scale=1)
+            center=center, angle=-angle, scale=1)
         
         self._debugger.save_sctter(self._flow_data, 'Marks before rotation!', categories=log_categories)
         
         n = self._flow_data.shape[0]
-        transformed_points = rotation_matrix.dot(
-            np.hstack([self._flow_data[::-1,:], np.ones(shape=(n, 1))]).T).T
-        transformed_points[::1,:] = transformed_points[::-1,:]
+        homog_points = np.hstack((self._flow_data, np.ones((n, 1))))
+        rotated_points = np.dot(rotation_matrix, homog_points.T).T[:, :2]
 
-        self._set_data(transformed_points)
+        self._set_data(rotated_points)
         self._debugger.save_sctter(self._flow_data, 'Marks after rotation!', categories=log_categories)
 
         if save_trace:
@@ -91,19 +90,17 @@ class MarksLand(Land):
         if center == None:
             center = (int(width/2), int(height/2))
         rotation_matrix = cv2.getRotationMatrix2D(
-            center=center, angle=-angle, scale=1)
+            center=center, angle=angle, scale=1)
         
         debugger.save_sctter(marks, 'Marks before rotation back!', categories=log_categories)
 
         n = marks.shape[0]
-        transformed_points = rotation_matrix.dot(
-            np.hstack([marks[::-1,:], np.ones(shape=(n, 1))]).T).T
-        transformed_points[::1,:] = transformed_points[::-1,:]
+        homog_points = np.hstack((marks, np.ones((n, 1))))
+        rotated_points = np.dot(rotation_matrix, homog_points.T).T[:, :2]
 
-        marks = transformed_points
-        debugger.save_sctter(marks, 'Marks after rotation back!', categories=log_categories)
+        debugger.save_sctter(rotated_points, 'Marks after rotation back!', categories=log_categories)
 
         debugger.log_end(categories=log_categories)
         debugger.log_saved_sctters(categories=log_categories)  
         
-        return marks
+        return rotated_points

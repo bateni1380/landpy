@@ -3,7 +3,7 @@ import time
 from typing import Any, Callable, Dict, Iterable, List, Literal, Tuple
 import numpy as np
 import matplotlib.pyplot as plt
-
+import matplotlib.patches as patches
 
 class Debugger:
     '''
@@ -221,7 +221,10 @@ class Debugger:
                 else:
                     fig.add_subplot(dim[0], dim[1], i+1)
                 mark, desc = self.__scatters_to_show[i]['mark'], self.__scatters_to_show[i]['desc']
+                rect = patches.Rectangle((0, 0), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
+                plt.gca().add_patch(rect)
                 plt.scatter(mark[:,0], mark[:,1])
+                plt.axis('equal')
                 del mark
                 if desc is not None and len(desc) > 0:
                     plt.title(desc)
