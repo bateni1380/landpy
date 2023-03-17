@@ -1,6 +1,6 @@
 import inspect
 import time
-from typing import Any, Callable, Dict, Iterable, List, Literal, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Literal, Tuple, AnyStr
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -56,8 +56,9 @@ class Debugger:
         self.__start_tabs: int = 0
         self.__images_to_show = []
         self.__scatters_to_show = []
+        self.__last_log_categories = []
         self.__set_frame()
-        self.__log_start('Debugger init')
+        self.__log_start('Debugger init', ['Debugger.__init__', 'Debugger'])
 
     def __del__(self):
         if not self.__dubug:
@@ -66,6 +67,12 @@ class Debugger:
             self.__set_frame()
             self.__log_end()
 
+    def set_last_log_categories(self, last_log_categories):
+        self.__last_log_categories = last_log_categories
+        
+    def get_last_log_categories(self):
+        return self.__last_log_categories
+    
     def log(self, desc: str, categories: Iterable[str] = []):
         '''
             You can use this function to log an event in console.
@@ -79,10 +86,10 @@ class Debugger:
         '''
         if not self.__dubug:
             return
-        self.__set_frame()
-        _, last_time = self.__time_stack[-1]
-        if self.__textual_debug and self.__is_in_categories(categories):
 
+        if self.__textual_debug and self.__is_in_categories(categories):
+            self.__set_frame()
+            _, last_time = self.__time_stack[-1]
             self.__print(desc, self.__get_line_info(),
                          Debugger.__get_time_info(time.time()-last_time))
 
@@ -97,6 +104,7 @@ class Debugger:
         '''
         if not self.__dubug:
             return
+
         self.__set_frame()
         self.__log_start(desc, categories)
 
@@ -109,6 +117,7 @@ class Debugger:
         '''
         if not self.__dubug:
             return
+
         self.__set_frame()
         self.__log_end(categories)
 
@@ -124,6 +133,7 @@ class Debugger:
         '''
         if not self.__dubug:
             return
+
         if self.__visual_debug and self.__is_in_categories(categories):
             fig = plt.figure()
             for i in range(len(images)):
@@ -146,12 +156,14 @@ class Debugger:
         '''
         if not self.__dubug:
             return
+
         if self.__visual_debug and self.__is_in_categories(categories):
             self.log_images([image], [desc], None, categories)
 
     def save_image(self, image: np.ndarray, desc: str = "", categories: Iterable[str] = []):
         if not self.__dubug:
             return
+
         if self.__visual_debug and self.__is_in_categories(categories):
             self.log(desc+' saved!', categories)
             self.__images_to_show.append({'desc': desc, 'image': image.copy()})
@@ -159,6 +171,7 @@ class Debugger:
     def log_saved_images(self, dim: Tuple = None, categories: Iterable[str] = []):
         if not self.__dubug:
             return
+
         if self.__visual_debug and self.__is_in_categories(categories):
             images = [self.__images_to_show[i]['image']
                       for i in range(len(self.__images_to_show))]
@@ -181,6 +194,7 @@ class Debugger:
         '''
         if not self.__dubug:
             return
+
         if self.__visual_debug and self.__is_in_categories(categories):
             fig = plt.figure()
             for i in range(len(scatters)):
@@ -200,12 +214,14 @@ class Debugger:
     def log_scatter(self, scatter: np.ndarray, desc: str = "", categories: Iterable[str] = []):
         if not self.__dubug:
             return
+
         if self.__visual_debug and self.__is_in_categories(categories):
             self.log_scatters([scatter], [desc], None, categories)
 
     def save_scatter(self, mark: np.ndarray, desc: str = "", categories: Iterable[str] = []):
         if not self.__dubug:
             return
+
         if self.__visual_debug and self.__is_in_categories(categories):
             self.log(desc+' saved!', categories)
             self.__scatters_to_show.append(
@@ -214,6 +230,7 @@ class Debugger:
     def log_saved_scatters(self, dim: Tuple = None, categories: Iterable[str] = []):
         if not self.__dubug:
             return
+
         if self.__visual_debug and self.__is_in_categories(categories):
             scatters = [self.__images_to_show[i]['scatter']
                         for i in range(len(self.__scatters_to_show))]
@@ -275,3 +292,26 @@ class Debugger:
             self.__start_tabs -= 1
             self.__print(last_desc + ' ended', self.__get_line_info(),
                          Debugger.__get_time_info(time.time()-last_time))
+
+    def method_decorator(log_categories: List, title: str):
+        def dec_wrapper(func):
+            def func_wrapper(self, *func_args, **func_kargs):
+                self._debugger.set_last_log_categories(log_categories)
+                self._debugger.log_start(title, categories=None)
+                result = func(self, *func_args, **func_kargs)
+                self._debugger.log_end(categories=None)
+                return result
+            return func_wrapper
+        return dec_wrapper
+    
+    def static_method_decorator(log_categories: List, title: str):
+        def dec_wrapper(func):
+            def func_wrapper(*func_args, debugger, **func_kargs,):
+                debugger.set_last_log_categories(log_categories)
+                debugger.log_start(title, categories=None)
+                result = func(*func_args, debugger, **func_kargs)
+                debugger.log_end(categories=None)
+                return result
+            return func_wrapper
+        return dec_wrapper
+    

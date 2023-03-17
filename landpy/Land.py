@@ -15,40 +15,34 @@ class Land:
         del self._flow_data
         del self.__trace
         del self.__checkpoint_history
-        
+
+    @Debugger.method_decorator(['Land._set_data', 'Land'], 'Sending data to flow_data')    
     def _set_data(self, data: Any):
-        self._debugger.log_start('Sending data to flow_data', categories=['Land._set_data', 'Land'])
         self._flow_data = data
-        self._debugger.log_end(categories=['Land._set_data', 'Land'])
         return self
     
+    @Debugger.method_decorator(['Land._set_data', 'Land'], 'Returning flow_data')    
     def _get_data(self):
-        self._debugger.log('flow_data returned!', categories=['Land._get_data', 'Land'])
         return self._flow_data
     
+    @Debugger.method_decorator(['Land._make_trace', 'Land'], 'Making trace')    
     def _make_trace(self,  inv_fun: Callable, pars: Dict):
-        self._debugger.log_start('Making trace', categories=['Land._make_trace', 'Land'])
         self.__trace.append({'inv_fun': inv_fun, 'pars': pars})
-        self._debugger.log_end(categories=['Land._make_trace', 'Land'])
     
+    @Debugger.static_method_decorator(['Exception', 'Land._make_exception', 'Land'], 'save_trace parameter was false so you can\'t retrace!')
     def _make_exception(data, pars, debugger):
-        log_categories = ['Exception', 'Land._make_exception', 'Land']
-        debugger.log('save_trace parameter was false so you can\'t retrace!', categories=log_categories)
         raise Exception('save_trace parameter was false so you can\'t retrace!')
     
+    @Debugger.method_decorator(['Land.retrace', 'Land'], 'Retracing land')   
     def retrace(self):
-        self._debugger.log_start('Retracing', categories=['Land.retrace', 'Land'])
-        
         if len(self.__trace)==0:
-            self._debugger.log('Trace list is empty!', categories=['Exception', 'Land.retrace', 'Land'])
+            self._debugger.log('Trace list is empty!', categories=['Exception']+self._debugger.get_last_log_categories())
             raise Exception('Trace list is empty!')
-            
         last_call = self.__trace.pop()
         inv_fun, pars = last_call['inv_fun'], last_call['pars'] 
         self._flow_data = inv_fun(self._flow_data, pars, self._debugger)
-        
-        self._debugger.log_end(categories=['Land.retrace', 'Land'])
-    
+
+    @Debugger.method_decorator(['Land.__copy_trace', 'Land'], 'Copying the whole trace')   
     def __copy_trace(self):
         copied_trace = []
         for item in self.__trace:
@@ -63,39 +57,37 @@ class Land:
         flow_data = self._flow_data.copy() if hasattr(self._flow_data, 'copy') else self._flow_data
         return {'trace':copied_trace, 'flow_data':flow_data}
     
+    @Debugger.method_decorator(['Land.make_checkpoint', 'Land'], 'Making checkpoint')  
     def make_checkpoint(self):
-        self._debugger.log_start('Making checkpoint version {} (copying trace)'.format(self.__checkpoint_version+1), categories=['Land.make_checkpoint', 'Land'])
+        self._debugger.log('version {}'.format(self.__checkpoint_version+1), categories=self._debugger.get_last_log_categories())
         
         while self.__checkpoint_version+1 < len(self.__checkpoint_history):
             self.__checkpoint_history.pop()
-            self._debugger.log('Version {} deleted!'.format(len(self.__checkpoint_history)), categories=['Land.make_checkpoint', 'Land'])
+            self._debugger.log('Version {} deleted!'.format(len(self.__checkpoint_history)), categories=self._debugger.get_last_log_categories())
 
         self.__checkpoint_history.append(self.__copy_trace())
         self.__checkpoint_version += 1
 
-        self._debugger.log_end(categories=['Land.make_checkpoint', 'Land'])
-
+    @Debugger.method_decorator(['Land.undo', 'Land'], 'Undoing Land')  
     def undo(self):
         self.__trace = self.__checkpoint_history[self.__checkpoint_version]['trace']
         self._flow_data = self.__checkpoint_history[self.__checkpoint_version]['flow_data']
         self.__checkpoint_version -= 1
-        self._debugger.log('Land undoed to version {}!'.format(self.__checkpoint_version), categories=['Land.undo', 'Land'])
-        
+        self._debugger.log('undoed to version {}!'.format(self.__checkpoint_version), categories=self._debugger.get_last_log_categories())
+    
+    @Debugger.method_decorator(['Land.redo', 'Land'], 'Redoing Land')  
     def redo(self):
         self.__checkpoint_version += 1
         self.__trace = self.__checkpoint_history[self.__checkpoint_version]['trace']
         self._flow_data = self.__checkpoint_history[self.__checkpoint_version]['flow_data']
-        self._debugger.log('Land redoed to version {}!'.format(self.__checkpoint_version), categories=['Land.undo', 'redo'])
+        self._debugger.log('redoed to version {}!'.format(self.__checkpoint_version), categories=self._debugger.get_last_log_categories())
     
+    @Debugger.method_decorator(['Land.clear_trace', 'Land'], 'Clearing trace')  
     def clear_trace(self):
-        self._debugger.log_start('Clearing trace', categories=['Land.clear_trace', 'Land'])
         self.make_checkpoint()
         self.__trace = []
-        self._debugger.log_end(categories=['Land.clear_trace', 'Land'])
         
+    @Debugger.method_decorator(['Land.clear_checkpoint_history', 'Land'], 'Clearing checkpoint history')  
     def clear_checkpoint_history(self):
-        self._debugger.log_start('Clearing checkpoint history', categories=['Land.clear_checkpoint_history', 'Land'])
         del self.__checkpoint_history
-        self.__checkpoint_history = []
-        self._debugger.log_end(categories=['Land.clear_checkpoint_history', 'Land'])\
-        
+        self.__checkpoint_history = []        
