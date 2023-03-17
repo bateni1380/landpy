@@ -283,12 +283,10 @@ class Debugger:
             self.__start_tabs += 1
 
     def __log_end(self, categories: Iterable[str] = []):
-        if self.__start_tabs == 0:
-            raise Exception('There is no proccess to end it ' +
-                            self.__get_line_info())
-
         last_desc, last_time = self.__time_stack.pop()
         if self.__textual_debug and self.__is_in_categories(categories):
+            if self.__start_tabs == 0:
+                raise Exception('There is no proccess to end it ' + self.__get_line_info())
             self.__start_tabs -= 1
             self.__print(last_desc + ' ended', self.__get_line_info(),
                          Debugger.__get_time_info(time.time()-last_time))
@@ -296,10 +294,14 @@ class Debugger:
     def method_decorator(log_categories: List, title: str):
         def dec_wrapper(func):
             def func_wrapper(self, *func_args, **func_kargs):
+                last_log_categories = None
+                if self._debugger.get_last_log_categories() is not None:
+                    last_log_categories = self._debugger.get_last_log_categories().copy()
                 self._debugger.set_last_log_categories(log_categories)
-                self._debugger.log_start(title, categories=None)
+                self._debugger.log_start(title, categories=self._debugger.get_last_log_categories())
                 result = func(self, *func_args, **func_kargs)
-                self._debugger.log_end(categories=None)
+                self._debugger.log_end(categories=self._debugger.get_last_log_categories())
+                self._debugger.set_last_log_categories(last_log_categories)
                 return result
             return func_wrapper
         return dec_wrapper
@@ -307,10 +309,14 @@ class Debugger:
     def static_method_decorator(log_categories: List, title: str):
         def dec_wrapper(func):
             def func_wrapper(*func_args, debugger, **func_kargs,):
+                last_log_categories = None
+                if debugger.get_last_log_categories() is not None:
+                    last_log_categories = debugger.get_last_log_categories().copy()
                 debugger.set_last_log_categories(log_categories)
-                debugger.log_start(title, categories=None)
+                debugger.log_start(title, categories=debugger.get_last_log_categories())
                 result = func(*func_args, debugger, **func_kargs)
-                debugger.log_end(categories=None)
+                debugger.log_end(categories=debugger.get_last_log_categories())
+                debugger.set_last_log_categories(last_log_categories)
                 return result
             return func_wrapper
         return dec_wrapper

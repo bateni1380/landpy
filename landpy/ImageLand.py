@@ -25,7 +25,7 @@ class ImageLand(Land):
 
         if image.dtype in ('float32', 'float64'):
             image = (image*255)
-        self._set_data(image.astype('uint8'))
+        super()._set_data(image.astype('uint8'))
 
         return self
 
