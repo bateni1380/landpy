@@ -112,7 +112,7 @@ class ImageLand(Land):
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
 
-    @Debugger.static_method_decorator(['ImageLand.reshape', 'ImageLand'], 'Reshaping back image')
+    @Debugger.static_method_decorator(['ImageLand.__reshape_back', 'ImageLand'], 'Reshaping back image')
     def __reshape_back(image, pars: Dict, debugger: Debugger):
         debugger.log('(w, h, mode) = ({}, {}, {})'.format(
             pars['width'], pars['height'], pars['mode']), categories=debugger.get_last_log_categories())
@@ -132,17 +132,14 @@ class ImageLand(Land):
 
         return image
 
+    @Debugger.static_method_decorator(['ImageLand.zoom', 'ImageLand'], 'Zooming in image')
     def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace=True):
-        '''        log_categories = ['ImageLand.reshape', 'ImageLand']
-        self._debugger.log_start('Reshaping image (w, h, mode) = ({}, {}, {})'.format(
-            width, height, mode), categories=log_categories)
 
         if save_trace:
-            self._make_trace(ImageLand.__reshape_back, {'width': image.width,
-                                                        'height': image.height,
-                                                        'mode': image.mode})
-        if type(quadrilateral) is SquareMarks:'''
-        pass
+            self._make_trace(ImageLand.__reshape_back, {'last_image': self._flow_data.copy(),
+                                                        'quadrilateral': quadrilateral.copy()})
+        if type(quadrilateral) is SquareMarks:
+            pass
 
     def __zoom_back(self, pars, save_trace=True):
         pass  # challenge

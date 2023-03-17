@@ -25,6 +25,15 @@ class Land:
     def _get_data(self):
         return self._flow_data
     
+    @Debugger.method_decorator(['Land.copy', 'Land'], 'Copying Land')    
+    def copy(self):
+        dir = self.__copy_trace()
+        copied_land = type(self)(self._debugger)
+        copied_land.__trace = dir['trace']
+        copied_land._flow_data = dir['flow_data']
+        return copied_land
+
+
     @Debugger.method_decorator(['Land._make_trace', 'Land'], 'Making trace')    
     def _make_trace(self,  inv_fun: Callable, pars: Dict):
         self.__trace.append({'inv_fun': inv_fun, 'pars': pars})
