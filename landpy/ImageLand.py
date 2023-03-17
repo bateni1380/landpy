@@ -1,7 +1,7 @@
 from typing import Callable, List, Tuple, Dict, Literal, Any, Iterable, Union
 import time
-from landpy import Debugger, Land, MarksLand, Filter, HeatLand
-from landpy import HeatLand
+from landpy import Debugger, Land
+from landpy import MarksLand, QuadMarks, SquareMarks, HeatLand, Filter
 from landpy.heat import zero_heat, full_heat
 import numpy as np
 import cv2
@@ -131,11 +131,11 @@ class ImageLand(Land):
         debugger.log_saved_images(categories=log_categories)
         
         return image
-'''
+
 
     ################################# TODO #################################
-    def zoom(self, quadrilateral: Union[1, 1], save_trace=True):
-        pass
+    def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace=True):
+        print(type(quadrilateral) is QuadMarks)
 
     def __zoom_back(self, pars, save_trace=True):
         pass  # challenge
@@ -146,5 +146,5 @@ class ImageLand(Land):
         pass
 
     def implant_image(self, src_land: MarksLand, plant_land: MarksLand, plant_img: np.ndarray):
-        pass  # challenge'''
+        pass  # challenge
 

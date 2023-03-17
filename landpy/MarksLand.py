@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib.pylab as plt
 from PIL import Image, ImageDraw, ImageOps
 import cv2
-np.zeros
 
 
 class MarksLand(Land):

@@ -1,10 +1,19 @@
-from landpy import Debugger, Land, MarksLand, QuadMarks
+from landpy import Debugger, QuadMarks
+
 
 class SquareMarks(QuadMarks):
-    def __init__(self, debugger: Debugger = Debugger(debug=False)):
+    def __init__(self, minX=None, maxX=None, minY=None, maxY=None, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
-    
+        if minX is not None and maxX is not None and minY is not None and maxY is not None:
+            self.set_marks(minX, maxX, minY, maxY)
+        
     def set_marks(self, minX, maxX, minY, maxY):
+        log_categories = ['SquareMarks.set_marks', 'SquareMarks']
+        if minX > maxX or minY > maxY :
+            self._debugger.log('minX and minY must be less than maxX and maxY!',
+                               categories=['Exception']+log_categories)
+            raise Exception('minX and minY must be less than maxX and maxY!')
+        
         x = [minX, minX, maxX, maxX]
         y = [minY, maxY, minY, maxY]
         super().set_marks(x, y)
