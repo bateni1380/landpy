@@ -67,12 +67,21 @@ class Debugger:
             self.__set_frame()
             self.__log_end()
 
-    def set_last_log_categories(self, last_log_categories):
-        self.__last_log_categories = last_log_categories
+    def append_last_log_categories(self, last_log_categories):
+        if not self.__dubug:
+            return
+        self.__last_log_categories.append(last_log_categories.copy())
         
     def get_last_log_categories(self):
-        return self.__last_log_categories
+        if not self.__dubug:
+            return []
+        return self.__last_log_categories[-1]
     
+    def pop_last_log_categories(self):
+        if not self.__dubug:
+            return
+        self.__last_log_categories.pop()
+
     def log(self, desc: str, categories: Iterable[str] = []):
         '''
             You can use this function to log an event in console.
@@ -294,30 +303,32 @@ class Debugger:
     def method_decorator(desc: str, log_categories: List):
         def dec_wrapper(func):
             def func_wrapper(self, *func_args, **func_kargs):
-                last_log_categories = None
-                print(log_categories)
-                if self._debugger.get_last_log_categories() is not None:
-                    last_log_categories = self._debugger.get_last_log_categories().copy()
-                self._debugger.set_last_log_categories(log_categories)
+                self._debugger.append_last_log_categories(log_categories)
                 self._debugger.log_start(desc, categories=self._debugger.get_last_log_categories())
                 result = func(self, *func_args, **func_kargs)
                 self._debugger.log_end(categories=self._debugger.get_last_log_categories())
-                self._debugger.set_last_log_categories(last_log_categories)
+                self._debugger.pop_last_log_categories()
                 return result
             return func_wrapper
         return dec_wrapper
     
     def static_method_decorator(desc: str, log_categories: List):
         def dec_wrapper(func):
-            def func_wrapper(*func_args, debugger, **func_kargs,):
-                last_log_categories = None
-                if debugger.get_last_log_categories() is not None:
-                    last_log_categories = debugger.get_last_log_categories().copy()
-                debugger.set_last_log_categories(log_categories)
+            def func_wrapper(*func_args, **func_kargs):
+                debugger = None
+                if 'debugger' in func_kargs:
+                    debugger = func_kargs['debugger']
+                elif type(func_args[-1]) is Debugger:
+                    debugger = func_args[-1]
+                else:
+                    raise Exception('static_method_decorator expects a debugger object as last parameter.')
+                
+                debugger.append_last_log_categories(log_categories)
                 debugger.log_start(desc, categories=debugger.get_last_log_categories())
-                result = func(*func_args, debugger, **func_kargs)
+                result = func(*func_args, **func_kargs)
                 debugger.log_end(categories=debugger.get_last_log_categories())
-                debugger.set_last_log_categories(last_log_categories)
+                debugger.pop_last_log_categories()
+
                 return result
             return func_wrapper
         return dec_wrapper

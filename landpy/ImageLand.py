@@ -8,14 +8,14 @@ import cv2
 import inspect
 import matplotlib.pyplot as plt
 from PIL import Image
-np.row_stack
 
 
 class ImageLand(Land):
-    def __init__(self, debugger: Debugger = Debugger(debug=False)):
+    def __init__(self, debugger: Debugger = Debugger(debug=False)): 
         super().__init__(debugger)
+        self._debugger = debugger
 
-    @Debugger.method_decorator(['ImageLand.set_data', 'ImageLand'], 'Sending image to flow_data')
+    @Debugger.method_decorator('Sending image to flow_data', ['ImageLand.set_data', 'ImageLand'])
     def set_image(self, image: np.ndarray):
         if type(image) is Image:
             image = np.array(image)
@@ -132,7 +132,7 @@ class ImageLand(Land):
 
         return image
 
-    @Debugger.static_method_decorator(['ImageLand.zoom', 'ImageLand'], 'Zooming in image')
+    @Debugger.method_decorator('Zooming in image', ['ImageLand.zoom', 'ImageLand'])
     def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace=True):
 
         if save_trace:

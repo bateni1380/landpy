@@ -7,6 +7,7 @@ class QuadMarks(MarksLand):
         if x1 is not None and x2 is not None and x3 is not None and x4 is not None:
             self.set_marks(x1, x2, x3, x4)
             
+    @Debugger.method_decorator('Initializing QuadMarks', ['QuadMarks.__init__', 'QuadMarks'])
     def set_marks(self, x1, x2, x3, x4):
         log_categories = ['QuadMarks.set_marks', 'QuadMarks']
         if len(x1) != 2 or len(x2) != 2 or len(x3) != 2 or len(x4) != 2 :
