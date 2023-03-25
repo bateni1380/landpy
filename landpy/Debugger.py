@@ -291,14 +291,15 @@ class Debugger:
             self.__print(last_desc + ' ended', self.__get_line_info(),
                          Debugger.__get_time_info(time.time()-last_time))
 
-    def method_decorator(log_categories: List, title: str):
+    def method_decorator(desc: str, log_categories: List):
         def dec_wrapper(func):
             def func_wrapper(self, *func_args, **func_kargs):
                 last_log_categories = None
+                print(log_categories)
                 if self._debugger.get_last_log_categories() is not None:
                     last_log_categories = self._debugger.get_last_log_categories().copy()
                 self._debugger.set_last_log_categories(log_categories)
-                self._debugger.log_start(title, categories=self._debugger.get_last_log_categories())
+                self._debugger.log_start(desc, categories=self._debugger.get_last_log_categories())
                 result = func(self, *func_args, **func_kargs)
                 self._debugger.log_end(categories=self._debugger.get_last_log_categories())
                 self._debugger.set_last_log_categories(last_log_categories)
@@ -306,14 +307,14 @@ class Debugger:
             return func_wrapper
         return dec_wrapper
     
-    def static_method_decorator(log_categories: List, title: str):
+    def static_method_decorator(desc: str, log_categories: List):
         def dec_wrapper(func):
             def func_wrapper(*func_args, debugger, **func_kargs,):
                 last_log_categories = None
                 if debugger.get_last_log_categories() is not None:
                     last_log_categories = debugger.get_last_log_categories().copy()
                 debugger.set_last_log_categories(log_categories)
-                debugger.log_start(title, categories=debugger.get_last_log_categories())
+                debugger.log_start(desc, categories=debugger.get_last_log_categories())
                 result = func(*func_args, debugger, **func_kargs)
                 debugger.log_end(categories=debugger.get_last_log_categories())
                 debugger.set_last_log_categories(last_log_categories)

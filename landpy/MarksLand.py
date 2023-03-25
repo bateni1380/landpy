@@ -11,21 +11,21 @@ class MarksLand(Land):
     def __init__(self, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
 
-    @Debugger.method_decorator(['MarksLand.set_marks', 'MarksLand'], 'Setting marks!')
+    @Debugger.method_decorator('Setting marks!', ['MarksLand.set_marks', 'MarksLand'])
     def set_marks(self, x, y):
         marks = self.__xy_to_flow_data(x, y)
         super()._set_data(marks)
         return self
 
-    @Debugger.method_decorator(['MarksLand.get_marks', 'MarksLand'], 'Getting marks!')
+    @Debugger.method_decorator('Getting marks!', ['MarksLand.get_marks', 'MarksLand'])
     def get_marks(self):
         super()._get_data()
 
-    @Debugger.method_decorator(['MarksLand.show', 'MarksLand'], 'Showing marks')
+    @Debugger.method_decorator('Showing marks', ['MarksLand.show', 'MarksLand'])
     def show(self):
         Debugger(visual_debug=True).log_scatter(self._flow_data)
 
-    @Debugger.method_decorator(['MarksLand.__xy_to_flow_data', 'MarksLand'], 'Converting to (n,2) matrix')
+    @Debugger.method_decorator('Converting to (n,2) matrix', ['MarksLand.__xy_to_flow_data', 'MarksLand'])
     def __xy_to_flow_data(self, x, y):
         if type(x) not in [list, tuple, np.ndarray] or type(y) not in [list, tuple, np.ndarray]:
             self._debugger.log('x and y must be list\\tuple\\ndarray!',
@@ -43,7 +43,7 @@ class MarksLand(Land):
         marks = np.hstack([x, y])
         return marks
 
-    @Debugger.method_decorator(['MarksLand.rotate', 'MarksLand'], 'Rotating marks')
+    @Debugger.method_decorator('Rotating marks', ['MarksLand.rotate', 'MarksLand'])
     def rotate(self, angle: float, center: Tuple = None, save_trace=True):
         if center == None:
             center = (0.5, 0.5)
@@ -70,7 +70,7 @@ class MarksLand(Land):
         self._debugger.log_saved_scatters(
             categories=self._debugger.get_last_log_categories())
 
-    @Debugger.static_method_decorator(['MarksLand.__rotate_back', 'MarksLand'], 'Rotating back marks')
+    @Debugger.static_method_decorator('Rotating back marks', ['MarksLand.__rotate_back', 'MarksLand'])
     def __rotate_back(marks, pars: Dict, debugger: Debugger):
         angle, center = pars['angle'], pars['center']
         height, width = np.max(marks[:, 0])-np.min(

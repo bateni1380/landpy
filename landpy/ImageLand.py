@@ -140,6 +140,8 @@ class ImageLand(Land):
                                                         'quadrilateral': quadrilateral.copy()})
         if type(quadrilateral) is SquareMarks:
             pass
+        elif type(quadrilateral) is QuadMarks:
+            pass
 
     def __zoom_back(self, pars, save_trace=True):
         pass  # challenge
