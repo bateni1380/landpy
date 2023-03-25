@@ -11,7 +11,7 @@ from PIL import Image
 
 
 class ImageLand(Land):
-    def __init__(self, debugger: Debugger = Debugger(debug=False)): 
+    def __init__(self, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
         self._debugger = debugger
 
@@ -50,11 +50,11 @@ class ImageLand(Land):
             center=center, angle=angle, scale=1)
 
         self._debugger.save_image(
-            self._flow_data, 'Image before rotation!', categories=self._debugger.get_last_log_categories())
+            self._flow_data, 'Image before rotation', categories=self._debugger.get_last_log_categories())
         self._flow_data = cv2.warpAffine(src=self._flow_data, M=rotation_matrix, dsize=(
             width, height), borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
         self._debugger.save_image(
-            self._flow_data, 'Image after rotation!', categories=self._debugger.get_last_log_categories())
+            self._flow_data, 'Image after rotation', categories=self._debugger.get_last_log_categories())
 
         if save_trace:
             self._make_trace(ImageLand.__rotate_back, {
@@ -75,11 +75,11 @@ class ImageLand(Land):
             center=pars['center'], angle=-pars['angle'], scale=1)
 
         debugger.save_image(
-            image, 'Image before rotation back!', categories=debugger.get_last_log_categories())
+            image, 'Image before rotation back', categories=debugger.get_last_log_categories())
         image = cv2.warpAffine(src=image, M=rotation_matrix, dsize=(
             width, height), borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
         debugger.save_image(
-            image, 'Image after rotation back!', categories=debugger.get_last_log_categories())
+            image, 'Image after rotation back', categories=debugger.get_last_log_categories())
 
         debugger.log_saved_images(
             categories=debugger.get_last_log_categories())
@@ -101,13 +101,13 @@ class ImageLand(Land):
             self._make_trace(Land._make_exception, {})
 
         self._debugger.save_image(
-            self._flow_data, 'Image before reshape!', categories=self._debugger.get_last_log_categories())
+            self._flow_data, 'Image before reshape', categories=self._debugger.get_last_log_categories())
         image = image.resize((width, height))
         image = image.convert(mode)
         image = np.array(image, dtype='uint8')
         self._flow_data = image
         self._debugger.save_image(
-            self._flow_data, 'Image after reshape!', categories=self._debugger.get_last_log_categories())
+            self._flow_data, 'Image after reshape', categories=self._debugger.get_last_log_categories())
 
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
@@ -117,16 +117,15 @@ class ImageLand(Land):
         debugger.log('(w, h, mode) = ({}, {}, {})'.format(
             pars['width'], pars['height'], pars['mode']), categories=debugger.get_last_log_categories())
 
-        debugger.save_image(image, 'Image before reshape!',
+        debugger.save_image(image, 'Image before reshape',
                             categories=debugger.get_last_log_categories())
         image = Image.fromarray(image)
         image = image.resize((pars['width'], pars['height']))
         image = image.convert(pars['mode'])
         image = np.array(image, dtype='uint8')
-        debugger.save_image(image, 'Image after reshape!',
+        debugger.save_image(image, 'Image after reshape',
                             categories=debugger.get_last_log_categories())
 
-        debugger.log_end(categories=debugger.get_last_log_categories())
         debugger.log_saved_images(
             categories=debugger.get_last_log_categories())
 
@@ -137,14 +136,26 @@ class ImageLand(Land):
 
         if save_trace:
             self._make_trace(ImageLand.__zoom_back, {'last_image': self._flow_data.copy(),
-                                                        'quadrilateral': quadrilateral.copy()})
+                                                     'quadrilateral': quadrilateral.copy()})
+
+        self._debugger.save_image(self._flow_data, 'Image before zoom',
+                                  categories=self._debugger.get_last_log_categories())
         if type(quadrilateral) is SquareMarks:
-            pass
+            minX, maxX = quadrilateral.minX*self._flow_data.shape[0], quadrilateral.maxX*self._flow_data.shape[0]
+            minY, maxY = quadrilateral.minY*self._flow_data.shape[1], quadrilateral.maxY*self._flow_data.shape[1]
+            minX, maxX, minY, maxY = int(minX), int(maxX), int(minY), int(maxY)
+            self._flow_data = self._flow_data[minX:maxX, minY:maxY]
+
         elif type(quadrilateral) is QuadMarks:
             pass
+        self._debugger.save_image(self._flow_data, 'Image after zoom',
+                                  categories=self._debugger.get_last_log_categories())
+
+        self._debugger.log_saved_images(
+            categories=self._debugger.get_last_log_categories())
 
     def __zoom_back(self, pars, save_trace=True):
-        print(pars['quadrilateral']._flow_data)
+        # print(pars['quadrilateral']._flow_data)
         pass  # challenge
 
     def implant_filter(self, filter: Filter, heat: HeatLand = None):
