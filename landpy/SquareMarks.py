@@ -7,6 +7,7 @@ class SquareMarks(QuadMarks):
         if minX is not None and maxX is not None and minY is not None and maxY is not None:
             self.set_marks(minX, maxX, minY, maxY)
         
+    @Debugger.method_decorator('Setting SquareMarks', ['SquareMarks.set_marks', 'SquareMarks'])
     def set_marks(self, minX, maxX, minY, maxY):
         log_categories = ['SquareMarks.set_marks', 'SquareMarks']
         if minX > maxX or minY > maxY :

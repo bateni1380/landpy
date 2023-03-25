@@ -29,15 +29,15 @@ class ImageLand(Land):
 
         return self
 
-    @Debugger.method_decorator(['ImageLand.get_image', 'ImageLand'], 'Returning image!')
+    @Debugger.method_decorator('Returning image!', ['ImageLand.get_image', 'ImageLand'])
     def get_image(self):
         return self._get_data()
 
-    @Debugger.method_decorator(['ImageLand.show', 'ImageLand'], 'Showing the image')
+    @Debugger.method_decorator('Showing the image', ['ImageLand.show', 'ImageLand'])
     def show(self):
         Debugger(visual_debug=True).log_image(self._flow_data)
 
-    @Debugger.method_decorator(['ImageLand.rotate', 'ImageLand'], 'Rotating image')
+    @Debugger.method_decorator('Rotating image', ['ImageLand.rotate', 'ImageLand'])
     def rotate(self, angle: float, center: Tuple = None, save_trace=True):
         height, width = self._flow_data.shape[:2]
         if center == None:
@@ -65,7 +65,7 @@ class ImageLand(Land):
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
 
-    @Debugger.static_method_decorator(['ImageLand.__rotate_back', 'ImageLand'], 'Rotating back image')
+    @Debugger.static_method_decorator('Rotating back image', ['ImageLand.__rotate_back', 'ImageLand'])
     def __rotate_back(image, pars: Dict, debugger: Debugger):
         debugger.log('(angle, center) = ({}, {})'
                      .format(-pars['angle'], pars['center']), categories=debugger.get_last_log_categories())
@@ -86,7 +86,7 @@ class ImageLand(Land):
 
         return image
 
-    @Debugger.method_decorator(['ImageLand.reshape', 'ImageLand'], 'Reshaping image')
+    @Debugger.method_decorator('Reshaping image', ['ImageLand.reshape', 'ImageLand'])
     def reshape(self, width, height, mode='RGB', save_trace=True):
         self._debugger.log('(w, h, mode) = ({}, {}, {})'.format(
             width, height, mode), categories=self._debugger.get_last_log_categories())
@@ -112,7 +112,7 @@ class ImageLand(Land):
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
 
-    @Debugger.static_method_decorator(['ImageLand.__reshape_back', 'ImageLand'], 'Reshaping back image')
+    @Debugger.static_method_decorator('Reshaping back image', ['ImageLand.__reshape_back', 'ImageLand'])
     def __reshape_back(image, pars: Dict, debugger: Debugger):
         debugger.log('(w, h, mode) = ({}, {}, {})'.format(
             pars['width'], pars['height'], pars['mode']), categories=debugger.get_last_log_categories())
