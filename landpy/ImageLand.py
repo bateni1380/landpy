@@ -136,7 +136,7 @@ class ImageLand(Land):
     def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace=True):
 
         if save_trace:
-            self._make_trace(ImageLand.__reshape_back, {'last_image': self._flow_data.copy(),
+            self._make_trace(ImageLand.__zoom_back, {'last_image': self._flow_data.copy(),
                                                         'quadrilateral': quadrilateral.copy()})
         if type(quadrilateral) is SquareMarks:
             pass
@@ -144,6 +144,7 @@ class ImageLand(Land):
             pass
 
     def __zoom_back(self, pars, save_trace=True):
+        print(pars['quadrilateral']._flow_data)
         pass  # challenge
 
     def implant_filter(self, filter: Filter, heat: HeatLand = None):

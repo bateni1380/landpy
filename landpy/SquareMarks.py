@@ -1,4 +1,4 @@
-from landpy import Debugger, QuadMarks
+from landpy import Debugger, QuadMarks, MarksLand
 
 
 class SquareMarks(QuadMarks):
@@ -17,7 +17,7 @@ class SquareMarks(QuadMarks):
         
         x = [minX, minX, maxX, maxX]
         y = [minY, maxY, minY, maxY]
-        super().set_marks(x, y)
+        MarksLand.set_marks(self, x, y)
         self.minX, self.maxX = self._flow_data[0,0], self._flow_data[2,0]
         self.minY, self.maxY = self._flow_data[0,1], self._flow_data[1,1]
         return self
