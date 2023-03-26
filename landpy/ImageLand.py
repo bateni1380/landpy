@@ -7,6 +7,7 @@ import numpy as np
 import cv2
 import inspect
 import matplotlib.pyplot as plt
+import math
 from PIL import Image
 
 
@@ -132,7 +133,7 @@ class ImageLand(Land):
         return image
 
     @Debugger.method_decorator('Zooming in image', ['ImageLand.zoom', 'ImageLand'])
-    def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace=True):
+    def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace=True, fill_color=255):
 
         if save_trace:
             self._make_trace(ImageLand.__zoom_back, {'last_image': self._flow_data.copy(),
@@ -141,10 +142,43 @@ class ImageLand(Land):
         self._debugger.save_image(self._flow_data, 'Image before zoom',
                                   categories=self._debugger.get_last_log_categories())
         if type(quadrilateral) is SquareMarks:
-            minX, maxX = quadrilateral.minX*self._flow_data.shape[0], quadrilateral.maxX*self._flow_data.shape[0]
-            minY, maxY = quadrilateral.minY*self._flow_data.shape[1], quadrilateral.maxY*self._flow_data.shape[1]
-            minX, maxX, minY, maxY = int(minX), int(maxX), int(minY), int(maxY)
-            self._flow_data = self._flow_data[minX:maxX, minY:maxY]
+            minX = math.floor(quadrilateral.minX * self._flow_data.shape[0])
+            maxX = math.ceil(quadrilateral.maxX * self._flow_data.shape[0])
+            minY = math.floor(quadrilateral.minY * self._flow_data.shape[1])
+            maxY = math.ceil(quadrilateral.maxY * self._flow_data.shape[1])
+
+            if minX >= 0 and maxX < self._flow_data[0] and minY >= 0 and maxY < self._flow_data[1]:
+                self._flow_data = self._flow_data[minX:maxX, minY:maxY]
+            else:
+                # pad_shape = (maxX-minX, maxY-minY,self._flow_data.shape[2])
+                # img_pad = np.zeros(pad_shape, dtype='uint8')*fill_color
+
+                # x_len = min(maxX, org_shape[0])-max(minX, 0)
+                # y_len = min(maxY, org_shape[1])-max(minY, 0)
+
+                # img_pad[max(0, -minX):max(0, -minX)+x_len, max(0, -minY):max(0, -minY) +
+                #         y_len] = self._flow_data[max(minX, 0):max(minX, 0)+x_len, max(minY, 0):max(minY, 0)+y_len]
+
+                def genX(x):
+                    return np.ones([x, self._flow_data.shape[1], self._flow_data.shape[2]], dtype='uint8')*fill_color
+                self._flow_data = np.vstack(
+                    [genX(max(0, -minX)), self._flow_data, genX(max(0, maxX-self._flow_data.shape[0]))])
+
+                def genY(x):
+                    return np.ones([self._flow_data.shape[0], x, self._flow_data.shape[2]], dtype='uint8')*fill_color
+                self._flow_data = np.hstack(
+                    [genY(max(0, -minY)), self._flow_data, genY(max(0, maxY-self._flow_data.shape[1]))])
+
+                x_len = maxX+max(0,-minX)
+                y_len = maxY+max(0,-minY)
+
+                print(max(0, minY),max(0, minY)+y_len)
+                self._flow_data = self._flow_data[max(0, minX):max(
+                    0, minX)+x_len, max(0, minY):max(0, minY)+y_len]
+
+                # pad_shape =
+                # self._flow_data = np.stack(np.zeros(pad_shape, dtype='uint8')*fill_color)
+                # self._flow_data = img_pad
 
         elif type(quadrilateral) is QuadMarks:
             pass
