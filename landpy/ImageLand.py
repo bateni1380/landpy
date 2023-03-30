@@ -146,8 +146,7 @@ class ImageLand(Land):
             maxX = math.ceil(quadrilateral.maxX * self._flow_data.shape[0])
             minY = math.floor(quadrilateral.minY * self._flow_data.shape[1])
             maxY = math.ceil(quadrilateral.maxY * self._flow_data.shape[1])
-
-            if minX >= 0 and maxX < self._flow_data[0] and minY >= 0 and maxY < self._flow_data[1]:
+            if minX >= 0 and maxX <= self._flow_data.shape[0] and minY >= 0 and maxY <= self._flow_data.shape[1]:
                 self._flow_data = self._flow_data[minX:maxX, minY:maxY]
             else:
                 # pad_shape = (maxX-minX, maxY-minY,self._flow_data.shape[2])
@@ -172,7 +171,6 @@ class ImageLand(Land):
                 x_len = maxX+max(0,-minX)
                 y_len = maxY+max(0,-minY)
 
-                print(max(0, minY),max(0, minY)+y_len)
                 self._flow_data = self._flow_data[max(0, minX):max(
                     0, minX)+x_len, max(0, minY):max(0, minY)+y_len]
 
