@@ -241,9 +241,9 @@ class Debugger:
             return
 
         if self.__visual_debug and self.__is_in_categories(categories):
-            scatters = [self.__images_to_show[i]['scatter']
+            scatters = [self.__scatters_to_show[i]['scatter']
                         for i in range(len(self.__scatters_to_show))]
-            descs = [self.__images_to_show[i]['desc']
+            descs = [self.__scatters_to_show[i]['desc']
                      for i in range(len(self.__scatters_to_show))]
             self.log_scatters(scatters, descs, dim, categories)
             for i in range(len(self.__scatters_to_show)):

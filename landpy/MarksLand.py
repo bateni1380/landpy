@@ -69,7 +69,7 @@ class MarksLand(Land):
         homog_points = np.hstack((self._flow_data, np.ones((n, 1))))
         rotated_points = np.dot(rotation_matrix, homog_points.T).T[:, :2]
         self._flow_data = rotated_points
-        
+
         self._debugger.save_scatter(
             self._flow_data, 'Marks after rotation!', categories=self._debugger.get_last_log_categories())
 

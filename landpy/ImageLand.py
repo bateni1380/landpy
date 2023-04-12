@@ -213,8 +213,10 @@ class ImageLand(Land):
 
         return last_image
 
+    # NOT DONE 
     @Debugger.method_decorator('implanting filter in image', ['ImageLand.implant_filter', 'ImageLand'])
     def implant_filter(self, filter: Filter, heat: HeatLand = None):
+        # NOT DONE 
         self._debugger.save_image(self._flow_data, 'Image before implant',
                                   categories=self._debugger.get_last_log_categories())
         self._flow_data = ((self._flow_data+(255, 0, 0))/2).astype(int)
