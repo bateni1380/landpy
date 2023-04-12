@@ -99,4 +99,5 @@ class Land:
     @Debugger.method_decorator('Clearing checkpoint history', ['Land.clear_checkpoint_history', 'Land'])  
     def clear_checkpoint_history(self):
         del self.__checkpoint_history
-        self.__checkpoint_history = []        
+        self.__checkpoint_history = []   
+        self.__checkpoint_version = -1     
