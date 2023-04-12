@@ -7,6 +7,17 @@ class SquareMarks(QuadMarks):
         if minX is not None and maxX is not None and minY is not None and maxY is not None:
             self.set_marks(minX, maxX, minY, maxY)
         
+    
+    @Debugger.method_decorator('Copying SquareMarks', ['SquareMarks.copy', 'SquareMarks'])    
+    def copy(self):
+        copied_land = super().copy()
+        copied_land.minX = self.minX
+        copied_land.maxX = self.maxX
+        copied_land.minY = self.minY
+        copied_land.maxY = self.maxY
+        return copied_land
+    
+
     @Debugger.method_decorator('Setting SquareMarks', ['SquareMarks.set_marks', 'SquareMarks'])
     def set_marks(self, minX, maxX, minY, maxY):
         log_categories = ['SquareMarks.set_marks', 'SquareMarks']

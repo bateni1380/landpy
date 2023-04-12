@@ -134,13 +134,15 @@ class ImageLand(Land):
 
     @Debugger.method_decorator('Zooming in image', ['ImageLand.zoom', 'ImageLand'])
     def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace=True, fill_color=255):
-
         if save_trace:
             self._make_trace(ImageLand.__zoom_back, {'last_image': self._flow_data.copy(),
                                                      'quadrilateral': quadrilateral.copy()})
+        else:
+            self._make_trace(Land._make_exception, {})
 
         self._debugger.save_image(self._flow_data, 'Image before zoom',
                                   categories=self._debugger.get_last_log_categories())
+
         if type(quadrilateral) is SquareMarks:
             minX = math.floor(quadrilateral.minX * self._flow_data.shape[0])
             maxX = math.ceil(quadrilateral.maxX * self._flow_data.shape[0])
@@ -149,15 +151,6 @@ class ImageLand(Land):
             if minX >= 0 and maxX <= self._flow_data.shape[0] and minY >= 0 and maxY <= self._flow_data.shape[1]:
                 self._flow_data = self._flow_data[minX:maxX, minY:maxY]
             else:
-                # pad_shape = (maxX-minX, maxY-minY,self._flow_data.shape[2])
-                # img_pad = np.zeros(pad_shape, dtype='uint8')*fill_color
-
-                # x_len = min(maxX, org_shape[0])-max(minX, 0)
-                # y_len = min(maxY, org_shape[1])-max(minY, 0)
-
-                # img_pad[max(0, -minX):max(0, -minX)+x_len, max(0, -minY):max(0, -minY) +
-                #         y_len] = self._flow_data[max(minX, 0):max(minX, 0)+x_len, max(minY, 0):max(minY, 0)+y_len]
-
                 def genX(x):
                     return np.ones([x, self._flow_data.shape[1], self._flow_data.shape[2]], dtype='uint8')*fill_color
                 self._flow_data = np.vstack(
@@ -168,32 +161,72 @@ class ImageLand(Land):
                 self._flow_data = np.hstack(
                     [genY(max(0, -minY)), self._flow_data, genY(max(0, maxY-self._flow_data.shape[1]))])
 
-                x_len = maxX+max(0,-minX)
-                y_len = maxY+max(0,-minY)
+                x_len = maxX+max(0, -minX)
+                y_len = maxY+max(0, -minY)
 
                 self._flow_data = self._flow_data[max(0, minX):max(
                     0, minX)+x_len, max(0, minY):max(0, minY)+y_len]
-
-                # pad_shape =
-                # self._flow_data = np.stack(np.zeros(pad_shape, dtype='uint8')*fill_color)
-                # self._flow_data = img_pad
-
         elif type(quadrilateral) is QuadMarks:
-            pass
+            self._debugger.log("Zooming in image using QuadMarks is not supported yet!",
+                               self._debugger.get_last_log_categories()+"Exception")
+            raise Exception(
+                "Zooming in image using QuadMarks is not supported yet!")
+
         self._debugger.save_image(self._flow_data, 'Image after zoom',
                                   categories=self._debugger.get_last_log_categories())
 
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
 
-    def __zoom_back(self, pars, save_trace=True):
-        # print(pars['quadrilateral']._flow_data)
-        pass  # challenge
+    @Debugger.static_method_decorator('Zooming back image', ['ImageLand.__zoom_back', 'ImageLand'])
+    def __zoom_back(image, pars: Dict, debugger: Debugger):
+        last_image = pars['last_image']
+        quadrilateral = pars['quadrilateral']
 
+        debugger.save_image(image, 'Image before zoom back',
+                            categories=debugger.get_last_log_categories())
+        if type(quadrilateral) is SquareMarks:
+            minX = math.floor(quadrilateral.minX * last_image.shape[0])
+            maxX = math.ceil(quadrilateral.maxX * last_image.shape[0])
+            minY = math.floor(quadrilateral.minY * last_image.shape[1])
+            maxY = math.ceil(quadrilateral.maxY * last_image.shape[1])
+            if minX >= 0 and maxX <= last_image.shape[0] and minY >= 0 and maxY <= last_image.shape[1]:
+                last_image[minX:maxX, minY:maxY] = image
+            else:
+                x_len = min(maxX, last_image.shape[0])-max(0, minX)
+                y_len = min(maxY, last_image.shape[1])-max(0, minY)
+ 
+                last_image[max(0, minX):max(0, minX)+x_len, max(0, minY):max(
+                    0, minY)+y_len] = image[max(0, -minX):max(0, -minX)+x_len, max(0, -minY):max(0, -minY)+y_len]
+
+        elif type(quadrilateral) is QuadMarks:
+            debugger.log("Zooming back in image using QuadMarks is not supported yet!",
+                         debugger.get_last_log_categories()+"Exception")
+            raise Exception(
+                "Zooming back in image using QuadMarks is not supported yet!")
+
+        debugger.save_image(pars['last_image'], 'Image after zoom back',
+                            categories=debugger.get_last_log_categories())
+
+        debugger.log_saved_images(
+            categories=debugger.get_last_log_categories())
+
+        return last_image
+
+    @Debugger.method_decorator('implanting filter in image', ['ImageLand.implant_filter', 'ImageLand'])
     def implant_filter(self, filter: Filter, heat: HeatLand = None):
+        self._debugger.save_image(self._flow_data, 'Image before implant',
+                                  categories=self._debugger.get_last_log_categories())
+        self._flow_data = ((self._flow_data+(255, 0, 0))/2).astype(int)
+        self._debugger.save_image(self._flow_data, 'Image after implant',
+                                  categories=self._debugger.get_last_log_categories())
+
+        self._debugger.log_saved_images(
+            categories=self._debugger.get_last_log_categories())
+
         if heat is None:
-            heat = full_heat(self.flow_data.shape[0], self.flow_data.shape[1])
-        pass
+            heat = full_heat(
+                self._flow_data.shape[0], self._flow_data.shape[1])
 
     def implant_image(self, src_land: MarksLand, plant_land: MarksLand, plant_img: np.ndarray):
         pass  # challenge

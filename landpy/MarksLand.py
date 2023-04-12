@@ -21,6 +21,18 @@ class MarksLand(Land):
     def get_marks(self):
         super()._get_data()
 
+
+    @Debugger.method_decorator('Converting MarksLand to SquareMarks', ['MarksLand.to_square', 'MarksLand'])
+    def to_square(self):
+        from landpy import SquareMarks
+        sm = SquareMarks(self._debugger).set_marks(minX=np.min(self._flow_data[:, 0]),
+                                                   maxX=np.max(
+                                                       self._flow_data[:, 0]),
+                                                   minY=np.min(
+                                                       self._flow_data[:, 1]),
+                                                   maxY=np.max(self._flow_data[:, 1]))
+        return sm
+    
     @Debugger.method_decorator('Showing marks', ['MarksLand.show', 'MarksLand'])
     def show(self):
         Debugger(visual_debug=True).log_scatter(self._flow_data)
@@ -56,8 +68,8 @@ class MarksLand(Land):
         n = self._flow_data.shape[0]
         homog_points = np.hstack((self._flow_data, np.ones((n, 1))))
         rotated_points = np.dot(rotation_matrix, homog_points.T).T[:, :2]
-
-        self._set_data(rotated_points)
+        self._flow_data = rotated_points
+        
         self._debugger.save_scatter(
             self._flow_data, 'Marks after rotation!', categories=self._debugger.get_last_log_categories())
 
@@ -94,16 +106,7 @@ class MarksLand(Land):
 
         return rotated_points
 
-    
-    def to_square(self):
-        from landpy import SquareMarks
-        sm = SquareMarks(self._debugger).set_marks(minX=np.min(self._flow_data[:, 0]),
-                                                   maxX=np.max(
-                                                       self._flow_data[:, 0]),
-                                                   minY=np.min(
-                                                       self._flow_data[:, 1]),
-                                                   maxY=np.max(self._flow_data[:, 1]))
-        return sm
+
 
     ################################# TODO #################################
     def zoom():
