@@ -10,7 +10,7 @@ class QuadMarks(MarksLand):
     @Debugger.method_decorator('Setting QuadMarks', ['QuadMarks.__init__', 'QuadMarks'])
     def set_marks(self, x1, x2, x3, x4):
         log_categories = ['QuadMarks.set_marks', 'QuadMarks']
-        if len(x1) != 2 or len(x2) != 2 or len(x3) != 2 or len(x4) != 2 :
+        if (len(x1), len(x2), len(x3), len(x4)) != (2, 2, 2, 2) :
             self._debugger.log('xi must have two elements!',
                                categories=['Exception']+log_categories)
             raise Exception('xi must have two elements!')
