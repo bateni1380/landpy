@@ -162,7 +162,7 @@ class ImageLand(Land):
                     0, minX)+x_len, max(0, minY):max(0, minY)+y_len]
         elif type(quadrilateral) is QuadMarks:
             self._debugger.log("Zooming in image using QuadMarks is not supported yet!",
-                               self._debugger.get_last_log_categories()+"Exception")
+                               "Exception"+self._debugger.get_last_log_categories())
             raise Exception(
                 "Zooming in image using QuadMarks is not supported yet!")
 
@@ -195,7 +195,7 @@ class ImageLand(Land):
 
         elif type(quadrilateral) is QuadMarks:
             debugger.log("Zooming back in image using QuadMarks is not supported yet!",
-                         debugger.get_last_log_categories()+"Exception")
+                         "Exception"+debugger.get_last_log_categories())
             raise Exception(
                 "Zooming back in image using QuadMarks is not supported yet!")
 
