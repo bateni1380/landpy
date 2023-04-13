@@ -38,9 +38,6 @@ class Land:
     def _make_trace(self,  inv_fun: Callable, pars: Dict):
         self.__trace.append({'inv_fun': inv_fun, 'pars': pars})
     
-    @Debugger.static_method_decorator('save_trace parameter was false so you can\'t retrace!', ['Exception', 'Land._make_exception', 'Land'])
-    def _make_exception(data, pars, debugger):
-        raise Exception('save_trace parameter was false so you can\'t retrace!')
     
     @Debugger.method_decorator('Retracing land', ['Land.retrace', 'Land'])   
     def retrace(self):

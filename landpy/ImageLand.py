@@ -60,8 +60,6 @@ class ImageLand(Land):
         if save_trace:
             self._make_trace(ImageLand.__rotate_back, {
                              'angle': angle, 'center': center})
-        else:
-            self._make_trace(Land._make_exception, {})
 
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
@@ -98,8 +96,6 @@ class ImageLand(Land):
             self._make_trace(ImageLand.__reshape_back, {'width': image.width,
                                                         'height': image.height,
                                                         'mode': image.mode})
-        else:
-            self._make_trace(Land._make_exception, {})
 
         self._debugger.save_image(
             self._flow_data, 'Image before reshape', categories=self._debugger.get_last_log_categories())
@@ -137,8 +133,6 @@ class ImageLand(Land):
         if save_trace:
             self._make_trace(ImageLand.__zoom_back, {'last_image': self._flow_data.copy(),
                                                      'quadrilateral': quadrilateral.copy()})
-        else:
-            self._make_trace(Land._make_exception, {})
 
         self._debugger.save_image(self._flow_data, 'Image before zoom',
                                   categories=self._debugger.get_last_log_categories())
