@@ -132,3 +132,6 @@ class MarksLand(Land):
 
     def to_list():
         pass
+
+    def to_heat():
+        pass

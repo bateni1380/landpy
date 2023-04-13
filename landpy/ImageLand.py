@@ -39,7 +39,7 @@ class ImageLand(Land):
         Debugger(visual_debug=True).log_image(self._flow_data)
 
     @Debugger.method_decorator('Rotating image', ['ImageLand.rotate', 'ImageLand'])
-    def rotate(self, angle: float, center: Tuple = None, save_trace=True):
+    def rotate(self, angle: float, center: Tuple = None, save_trace=True, fill_color=(0, 0, 0)):
         height, width = self._flow_data.shape[:2]
         if center == None:
             center = (int(width/2), int(height/2))
@@ -53,7 +53,7 @@ class ImageLand(Land):
         self._debugger.save_image(
             self._flow_data, 'Image before rotation', categories=self._debugger.get_last_log_categories())
         self._flow_data = cv2.warpAffine(src=self._flow_data, M=rotation_matrix, dsize=(
-            width, height), borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
+            width, height), borderMode=cv2.BORDER_CONSTANT, borderValue=fill_color)
         self._debugger.save_image(
             self._flow_data, 'Image after rotation', categories=self._debugger.get_last_log_categories())
 
@@ -129,7 +129,7 @@ class ImageLand(Land):
         return image
 
     @Debugger.method_decorator('Zooming in image', ['ImageLand.zoom', 'ImageLand'])
-    def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace=True, fill_color=255):
+    def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace=True, fill_color=(0, 0, 0)):
         if save_trace:
             self._make_trace(ImageLand.__zoom_back, {'last_image': self._flow_data.copy(),
                                                      'quadrilateral': quadrilateral.copy()})
@@ -159,7 +159,8 @@ class ImageLand(Land):
                 y_len = maxY+max(0, -minY)
 
                 self._flow_data = self._flow_data[max(0, minX):max(
-                    0, minX)+x_len, max(0, minY):max(0, minY)+y_len]
+                    0, minX)+x_len, max(0, minY):max(0, minY)+y_len].astype('uint8')
+
         elif type(quadrilateral) is QuadMarks:
             self._debugger.log("Zooming in image using QuadMarks is not supported yet!",
                                "Exception"+self._debugger.get_last_log_categories())
@@ -184,14 +185,20 @@ class ImageLand(Land):
             maxX = math.ceil(quadrilateral.maxX * last_image.shape[0])
             minY = math.floor(quadrilateral.minY * last_image.shape[1])
             maxY = math.ceil(quadrilateral.maxY * last_image.shape[1])
-            if minX >= 0 and maxX <= last_image.shape[0] and minY >= 0 and maxY <= last_image.shape[1]:
-                last_image[minX:maxX, minY:maxY] = image
+
+            x_len = min(maxX, last_image.shape[0])-max(0, minX)
+            y_len = min(maxY, last_image.shape[1])-max(0, minY)
+
+            if last_image.shape[2] == 4:
+                mask = image[max(
+                    0, -minX):max(0, -minX)+x_len, max(0, -minY):max(0, -minY)+y_len, 3] == 0
+                mask = np.stack([mask,mask,mask,mask], axis=2)
+                last_image[max(0, minX):max(0, minX)+x_len, max(0, minY):max(0, minY)+y_len] = image[max(
+                    0, -minX):max(0, -minX)+x_len, max(0, -minY):max(0, -minY)+y_len]*(1-mask) + last_image[max(
+                        0, minX):max(0, minX)+x_len, max(0, minY):max(0, minY)+y_len]*(mask)
             else:
-                x_len = min(maxX, last_image.shape[0])-max(0, minX)
-                y_len = min(maxY, last_image.shape[1])-max(0, minY)
- 
-                last_image[max(0, minX):max(0, minX)+x_len, max(0, minY):max(
-                    0, minY)+y_len] = image[max(0, -minX):max(0, -minX)+x_len, max(0, -minY):max(0, -minY)+y_len]
+                last_image[max(0, minX):max(0, minX)+x_len, max(0, minY):max(0, minY)+y_len] = image[max(
+                    0, -minX):max(0, -minX)+x_len, max(0, -minY):max(0, -minY)+y_len]
 
         elif type(quadrilateral) is QuadMarks:
             debugger.log("Zooming back in image using QuadMarks is not supported yet!",
@@ -207,13 +214,13 @@ class ImageLand(Land):
 
         return last_image
 
-    # NOT DONE 
+    # NOT DONE
     @Debugger.method_decorator('implanting filter in image', ['ImageLand.implant_filter', 'ImageLand'])
     def implant_filter(self, filter: Filter, heat: HeatLand = None):
-        # NOT DONE 
+        # NOT DONE
         self._debugger.save_image(self._flow_data, 'Image before implant',
                                   categories=self._debugger.get_last_log_categories())
-        self._flow_data = ((self._flow_data+(255, 0, 0))/2).astype(int)
+        self._flow_data = ((self._flow_data+(255, 0, 0, 255))/2).astype(int)
         self._debugger.save_image(self._flow_data, 'Image after implant',
                                   categories=self._debugger.get_last_log_categories())
 
