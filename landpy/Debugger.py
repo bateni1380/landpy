@@ -300,21 +300,37 @@ class Debugger:
             self.__print(last_desc + ' ended', self.__get_line_info(),
                          Debugger.__get_time_info(time.time()-last_time))
 
+
     def method_decorator(desc: str, log_categories: List):
         def dec_wrapper(func):
             def func_wrapper(self, *func_args, **func_kargs):
+                # Get the original function's signature and bind any default values
+                sig = inspect.signature(func)
+                bound_args = sig.bind_partial(*func_args, **func_kargs)
+                for param in sig.parameters.values():
+                    if param.name not in bound_args.arguments and param.default is not inspect.Parameter.empty:
+                        bound_args.arguments[param.name] = param.default
+
                 self._debugger.append_last_log_categories(log_categories)
                 self._debugger.log_start(desc, categories=self._debugger.get_last_log_categories())
-                result = func(self, *func_args, **func_kargs)
+                result = func(self, *bound_args.args, **bound_args.kwargs)
                 self._debugger.log_end(categories=self._debugger.get_last_log_categories())
                 self._debugger.pop_last_log_categories()
                 return result
             return func_wrapper
         return dec_wrapper
+
     
     def static_method_decorator(desc: str, log_categories: List):
         def dec_wrapper(func):
             def func_wrapper(*func_args, **func_kargs):
+                # Get the original function's signature and bind any default values
+                sig = inspect.signature(func)
+                bound_args = sig.bind_partial(*func_args, **func_kargs)
+                for param in sig.parameters.values():
+                    if param.name not in bound_args.arguments and param.default is not inspect.Parameter.empty:
+                        bound_args.arguments[param.name] = param.default
+
                 debugger = None
                 if 'debugger' in func_kargs:
                     debugger = func_kargs['debugger']
@@ -322,10 +338,10 @@ class Debugger:
                     debugger = func_args[-1]
                 else:
                     raise Exception('static_method_decorator expects a debugger object as last parameter.')
-                
+
                 debugger.append_last_log_categories(log_categories)
                 debugger.log_start(desc, categories=debugger.get_last_log_categories())
-                result = func(*func_args, **func_kargs)
+                result = func(*bound_args.args, **bound_args.kwargs)
                 debugger.log_end(categories=debugger.get_last_log_categories())
                 debugger.pop_last_log_categories()
 

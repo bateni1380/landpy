@@ -39,7 +39,7 @@ class ImageLand(Land):
         Debugger(visual_debug=True).log_image(self._flow_data)
 
     @Debugger.method_decorator('Rotating image', ['ImageLand.rotate', 'ImageLand'])
-    def rotate(self, angle: float, center: Tuple = None, save_trace=True, fill_color=(0, 0, 0)):
+    def rotate(self, angle: float, center: Tuple = None, save_trace: bool = True, fill_color = (0, 0, 0)):
         height, width = self._flow_data.shape[:2]
         if center == None:
             center = (int(width/2), int(height/2))
@@ -86,7 +86,7 @@ class ImageLand(Land):
         return image
 
     @Debugger.method_decorator('Reshaping image', ['ImageLand.reshape', 'ImageLand'])
-    def reshape(self, width, height, mode='RGB', save_trace=True):
+    def reshape(self, width, height, mode='RGB', save_trace: bool = True):
         self._debugger.log('(w, h, mode) = ({}, {}, {})'.format(
             width, height, mode), categories=self._debugger.get_last_log_categories())
 
@@ -128,8 +128,9 @@ class ImageLand(Land):
 
         return image
 
+    #TODO: zoom in images using QuadMarks
     @Debugger.method_decorator('Zooming in image', ['ImageLand.zoom', 'ImageLand'])
-    def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace=True, fill_color=(0, 0, 0)):
+    def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace: bool = True, fill_color = (0, 0, 0)):
         if save_trace:
             self._make_trace(ImageLand.__zoom_back, {'last_image': self._flow_data.copy(),
                                                      'quadrilateral': quadrilateral.copy()})
@@ -173,6 +174,7 @@ class ImageLand(Land):
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
 
+    #TODO: zoom back in images using QuadMarks
     @Debugger.static_method_decorator('Zooming back image', ['ImageLand.__zoom_back', 'ImageLand'])
     def __zoom_back(image, pars: Dict, debugger: Debugger):
         last_image = pars['last_image']
