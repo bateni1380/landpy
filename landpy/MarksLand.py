@@ -8,8 +8,10 @@ import cv2
 
 
 class MarksLand(Land):
-    def __init__(self, debugger: Debugger = Debugger(debug=False)):
+    def __init__(self, x=None, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
+        if x is not None:
+            self.set_marks(x)
 
     @Debugger.method_decorator('Setting marks!', ['MarksLand.set_marks', 'MarksLand'])
     def set_marks(self, x, y=None):
@@ -23,6 +25,8 @@ class MarksLand(Land):
     @Debugger.static_method_decorator('Converting to (n,2) matrix', ['MarksLand.__x_to_flow_data', 'MarksLand'])
     def __x_to_flow_data(x, debugger):
         marks = np.array(x)
+        if len(marks.shape)==1:
+            marks = marks.reshape((1, -1))
         return marks
 
     @Debugger.static_method_decorator('Converting to (n,2) matrix', ['MarksLand.__xy_to_flow_data', 'MarksLand'])
@@ -195,8 +199,8 @@ class MarksLand(Land):
     
     ################################# TODO #################################
 
-    def __getitem__():
-        pass
+    def __getitem__(self, ind):
+        return (self._flow_data[ind]).tolist()
 
     def to_list():
         pass
