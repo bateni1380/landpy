@@ -197,13 +197,13 @@ class MarksLand(Land):
         new_marks.set_marks(list(marks_set))
         return new_marks
     
-    ################################# TODO #################################
 
     def __getitem__(self, ind):
         return (self._flow_data[ind]).tolist()
 
-    def to_list():
-        pass
+    ################################# TODO #################################
+    def to_list(self):
+        return (self._flow_data).tolist()
 
     def to_heat():
         pass
