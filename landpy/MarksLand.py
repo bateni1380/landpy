@@ -32,15 +32,13 @@ class MarksLand(Land):
     @Debugger.static_method_decorator('Converting to (n,2) matrix', ['MarksLand.__xy_to_flow_data', 'MarksLand'])
     def __xy_to_flow_data(x, y, debugger):
         if type(x) not in [list, tuple, np.ndarray] or type(y) not in [list, tuple, np.ndarray]:
-            debugger.log('x and y must be list\\tuple\\ndarray!',
+            debugger.log_exception('x and y must be list\\tuple\\ndarray!',
                          categories=['Exception']+debugger.get_last_log_categories())
-            raise Exception('x and y must be list\\tuple\\ndarray!')
 
         x, y = np.array(x), np.array(y)
         if x.shape != y.shape:
-            debugger.log('x and y must have equal size!',
+            debugger.log_exception('x and y must have equal size!',
                          categories=['Exception']+debugger.get_last_log_categories())
-            raise Exception('x and y must have equal size!')
 
         x = np.array(x).reshape(-1, 1)
         y = np.array(y).reshape(-1, 1)
@@ -139,10 +137,9 @@ class MarksLand(Land):
             self._flow_data[:, 1] = (
                 self._flow_data[:, 1]-quadrilateral.minY)/(quadrilateral.maxX-quadrilateral.minY)
         elif type(quadrilateral) is QuadMarks:
-            self._debugger.log("Zooming in MarksLand using QuadMarks is not supported yet!",
+            self._debugger.log_exception("Zooming in MarksLand using QuadMarks is not supported yet!",
                                "Exception"+self._debugger.get_last_log_categories())
-            raise Exception(
-                "Zooming in MarksLand using QuadMarks is not supported yet!")
+
         self._debugger.save_scatter(
             self._flow_data, 'Marks after zoom!', categories=self._debugger.get_last_log_categories())
 
@@ -163,10 +160,9 @@ class MarksLand(Land):
             marksland[:, 1] = (
                 marksland[:, 1]*(quadrilateral.maxY-quadrilateral.minY))+quadrilateral.minY
         elif type(quadrilateral) is QuadMarks:
-            debugger.log("Zooming back in MarksLand using QuadMarks is not supported yet!",
+            debugger.log_exception("Zooming back in MarksLand using QuadMarks is not supported yet!",
                          "Exception"+debugger.get_last_log_categories())
-            raise Exception(
-                "Zooming in MarksLand using QuadMarks is not supported yet!")
+
         debugger.save_scatter(
             marksland, 'Marks after zoom back!', categories=debugger.get_last_log_categories())
 

@@ -22,9 +22,8 @@ class SquareMarks(QuadMarks):
     def set_marks(self, minX, maxX, minY, maxY):
         log_categories = ['SquareMarks.set_marks', 'SquareMarks']
         if minX > maxX or minY > maxY :
-            self._debugger.log('minX and minY must be less than maxX and maxY!',
+            self._debugger.log_exception('minX and minY must be less than maxX and maxY!',
                                categories=['Exception']+log_categories)
-            raise Exception('minX and minY must be less than maxX and maxY!')
         
         x = [minX, minX, maxX, maxX]
         y = [minY, maxY, minY, maxY]

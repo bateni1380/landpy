@@ -165,10 +165,8 @@ class ImageLand(Land):
                     0, minX)+x_len, max(0, minY):max(0, minY)+y_len].astype('uint8')
 
         elif type(quadrilateral) is QuadMarks:
-            self._debugger.log("Zooming in image using QuadMarks is not supported yet!",
+            self._debugger.log_exception("Zooming in image using QuadMarks is not supported yet!",
                                "Exception"+self._debugger.get_last_log_categories())
-            raise Exception(
-                "Zooming in image using QuadMarks is not supported yet!")
 
         self._debugger.save_image(self._flow_data, 'Image after zoom',
                                   categories=self._debugger.get_last_log_categories())
@@ -205,10 +203,8 @@ class ImageLand(Land):
                     0, -minX):max(0, -minX)+x_len, max(0, -minY):max(0, -minY)+y_len]
 
         elif type(quadrilateral) is QuadMarks:
-            debugger.log("Zooming back in image using QuadMarks is not supported yet!",
+            debugger.log_exception("Zooming back in image using QuadMarks is not supported yet!",
                          "Exception"+debugger.get_last_log_categories())
-            raise Exception(
-                "Zooming back in image using QuadMarks is not supported yet!")
 
         debugger.save_image(pars['last_image'], 'Image after zoom back',
                             categories=debugger.get_last_log_categories())

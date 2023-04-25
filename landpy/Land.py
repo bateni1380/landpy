@@ -42,8 +42,8 @@ class Land:
     @Debugger.method_decorator('Retracing land', ['Land.retrace', 'Land'])   
     def retrace(self):
         if len(self.__trace)==0:
-            self._debugger.log('Trace list is empty!', categories=['Exception']+self._debugger.get_last_log_categories())
-            raise Exception('Trace list is empty!')
+            self._debugger.log_exception('Trace list is empty!', categories=['Exception']+self._debugger.get_last_log_categories())
+
         last_call = self.__trace.pop()
         inv_fun, pars = last_call['inv_fun'], last_call['pars'] 
         self._flow_data = inv_fun(self._flow_data, pars, self._debugger)

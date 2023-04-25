@@ -130,6 +130,10 @@ class Debugger:
         self.__set_frame()
         self.__log_end(categories)
 
+    def log_exception(self, desc: str, categories: Iterable[str] = []):
+        self.log(desc, categories)
+        raise Exception(desc)
+    
     def log_images(self, images: List[np.ndarray], descs: List[str] = None, dim: Tuple = None, categories: Iterable[str] = []):
         '''
             This funtion is like a simple log but here, you feed some pictures as

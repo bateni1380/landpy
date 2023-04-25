@@ -1,12 +1,16 @@
 from landpy import Debugger, Land
+import numpy as np
 
 class HeatLand(Land):
-    def __init__(self, debugger: Debugger = Debugger(debug=False)):
+    def __init__(self, heat = None,  debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
+        if heat is not None:
+            self.set_heat(heat)
 
-    @Debugger.method_decorator('Sending image to flow_data', ['ImageLand.set_data', 'ImageLand'])
-    def set_image(self, image: np.ndarray):
-        if type(image) is Image:
+
+    @Debugger.method_decorator('Sending heat to flow_data', ['HeatLand.set_data', 'HeatLand'])
+    def set_heat(self, heat: np.ndarray):
+        if type(heat) is not np.ndarray:
             image = np.array(image)
 
         self._debugger.log_image(
