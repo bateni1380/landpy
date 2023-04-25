@@ -56,6 +56,7 @@ class Debugger:
         self.__start_tabs: int = 0
         self.__images_to_show = []
         self.__scatters_to_show = []
+        self.__heats_to_show = []
         self.__last_log_categories = []
         self.__set_frame()
         self.__log_start('Debugger init', ['Debugger.__init__', 'Debugger'])
@@ -253,6 +254,67 @@ class Debugger:
             for i in range(len(self.__scatters_to_show)):
                 del self.__scatters_to_show[i]['scatter']
             self.__scatters_to_show = []
+
+    def log_heats(self, heats: List[np.ndarray], descs: List[str] = None, dim: Tuple = None, categories: Iterable[str] = []):
+        '''
+            This funtion is like a simple log but here, you feed some heat images as
+                a list of np arrays.
+            - heats is the list of np arrays.
+            - descs is title of those heats.
+            - dim is dimentions of the grid that you want to see the pictures in it (by default,
+                log_heats show the heats in a 1-row grid)
+            - categories is like categories in log function.
+        '''
+        if not self.__dubug:
+            return
+
+        if self.__visual_debug and self.__is_in_categories(categories):
+            fig = plt.figure()
+            for i in range(len(heats)):
+                if dim is None:
+                    fig.add_subplot(1, len(heats), i+1)
+                else:
+                    fig.add_subplot(dim[0], dim[1], i+1)
+                plt.imshow(heats[i], cmap='Blues')
+                plt.axis('off')
+                if descs is not None and len(descs) > 0:
+                    plt.title(descs[i])
+            plt.show()
+
+    def log_heat(self, heat: np.ndarray, desc: str = "", categories: Iterable[str] = []):
+        '''
+            This funtion is like a simple log but here, you show some heats too.
+            - desc is the title of the heat.
+            - heat is the heat that you want to show as a np array format.
+            - categories is like categories in log function.
+        '''
+        if not self.__dubug:
+            return
+
+        if self.__visual_debug and self.__is_in_categories(categories):
+            self.log_heats([heat], [desc], None, categories)
+
+    def save_heat(self, heat: np.ndarray, desc: str = "", categories: Iterable[str] = []):
+        if not self.__dubug:
+            return
+
+        if self.__visual_debug and self.__is_in_categories(categories):
+            self.log(desc+' saved!', categories)
+            self.__heats_to_show.append({'desc': desc, 'heat': heat.copy()})
+
+    def log_saved_heats(self, dim: Tuple = None, categories: Iterable[str] = []):
+        if not self.__dubug:
+            return
+
+        if self.__visual_debug and self.__is_in_categories(categories):
+            heats = [self.__heats_to_show[i]['heat']
+                      for i in range(len(self.__heats_to_show))]
+            descs = [self.__heats_to_show[i]['desc']
+                     for i in range(len(self.__heats_to_show))]
+            self.log_heats(heats, descs, dim, categories)
+            for i in range(len(self.__heats_to_show)):
+                del self.__heats_to_show[i]['heat']
+            self.__heats_to_show = []
 
     def __set_frame(self):
         if self.__show_file or self.__show_line:
