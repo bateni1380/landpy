@@ -23,3 +23,4 @@ class HeatLand(Land):
         super()._set_data(heat)
 
         return self
+# TODO: add, sub, multiple, power, minus, zoom, crop, rotate
