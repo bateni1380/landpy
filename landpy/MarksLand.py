@@ -201,9 +201,16 @@ class MarksLand(Land):
     def __getitem__(self, ind):
         return (self._flow_data[ind]).tolist()
 
-    ################################# TODO #################################
     def to_list(self):
         return (self._flow_data).tolist()
 
-    def to_heat():
-        pass
+    def to_heat(self, shape):
+        heat_p = np.ones(shape)
+        pts = self._flow_data.copy()
+        pts[:,0] = (pts[:,0]*shape[0]).astype(int)
+        pts[:,1] = (pts[:,1]*shape[1]).astype(int)
+        print(pts.tolist())
+        cv2.fillPoly(heat_p, pts=[pts.tolist()], color=(1))
+        return heat_p
+
+    ################################# TODO #################################

@@ -10,11 +10,13 @@ import matplotlib.pyplot as plt
 import math
 from PIL import Image
 
-
+# TODO: histogram_equalize
 class ImageLand(Land):
-    def __init__(self, debugger: Debugger = Debugger(debug=False)):
+    def __init__(self, image = None, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
-        self._debugger = debugger
+        if image is not None:
+            self.set_image(image)
+
 
     @Debugger.method_decorator('Sending image to flow_data', ['ImageLand.set_data', 'ImageLand'])
     def set_image(self, image: np.ndarray):
