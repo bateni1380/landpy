@@ -58,4 +58,4 @@ class HeatLand(Land):
             
         return HeatLand(np.maximum(np.minimum(self._flow_data**other, 1), 0), self._debugger)
     
-# TODO: multiple, power, minus, zoom, crop, rotate
+# TODO: zoom, crop, rotate
