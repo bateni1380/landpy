@@ -13,7 +13,7 @@ class MarksLand(Land):
         if x is not None:
             MarksLand.set_marks(self, x, y)
 
-    @Debugger.method_decorator('Setting marks!', ['MarksLand.set_marks', 'MarksLand'])
+    @Debugger.method_decorator('Setting marks', ['MarksLand.set_marks', 'MarksLand'])
     def set_marks(self, x, y=None):
         if y is None:
             marks = MarksLand.__x_to_flow_data(x, self._debugger)
@@ -200,14 +200,14 @@ class MarksLand(Land):
     def to_list(self):
         return (self._flow_data).tolist()
 
-    def to_heat(self, shape=(128,128), debugger: Debugger = Debugger(debug=False)):
+    def to_heat(self, shape=(128,128)):
         heat_p = np.zeros(shape)
         pts = self._flow_data.copy()
         pts[:,0] = pts[:,0]*shape[0]
         pts[:,1] = pts[:,1]*shape[1]
         pts = pts.astype(int).reshape((-1, 1, 2))
         cv2.fillPoly(heat_p, pts=[pts], color=(1))
-        heat = HeatLand(heat_p, debugger)
+        heat = HeatLand(heat_p, self._debugger)
         return heat
 
-    ################################# TODO #################################
+    ################################# TODO ################################# adopting decorators

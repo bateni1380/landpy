@@ -16,7 +16,7 @@ class Land:
         del self.__trace
         del self.__checkpoint_history
 
-    @Debugger.method_decorator('Sending data to flow_data', ['Land._set_data', 'Land'])    
+    @Debugger.method_decorator('Setting flow_data', ['Land._set_data', 'Land'])    
     def _set_data(self, data: Any):
         self._flow_data = data
         return self
@@ -28,7 +28,7 @@ class Land:
     @Debugger.method_decorator('Copying Land', ['Land.copy', 'Land'])    
     def copy(self):
         dir = self.__copy_trace()
-        copied_land = type(self)(self._debugger)
+        copied_land = type(self)(debugger=self._debugger)
         copied_land.__trace = dir['trace']
         copied_land._flow_data = dir['flow_data']
         return copied_land

@@ -18,7 +18,7 @@ class ImageLand(Land):
             ImageLand.set_image(self, image)
 
 
-    @Debugger.method_decorator('Sending image to flow_data', ['ImageLand.set_data', 'ImageLand'])
+    @Debugger.method_decorator('Setting image', ['ImageLand.set_data', 'ImageLand'])
     def set_image(self, image: np.ndarray):
         if type(image) is Image:
             image = np.array(image)
