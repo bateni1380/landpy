@@ -15,7 +15,7 @@ class ImageLand(Land):
     def __init__(self, image = None, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
         if image is not None:
-            self.set_image(image)
+            ImageLand.set_image(self, image)
 
 
     @Debugger.method_decorator('Sending image to flow_data', ['ImageLand.set_data', 'ImageLand'])

@@ -6,7 +6,7 @@ class HeatLand(Land):
     def __init__(self, heat=None,  debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
         if heat is not None:
-            self.set_heat(heat)
+            HeatLand.set_heat(self, heat)
 
     @Debugger.method_decorator('Sending heat to flow_data', ['HeatLand.set_data', 'HeatLand'])
     def set_heat(self, heat: np.ndarray):
@@ -23,4 +23,12 @@ class HeatLand(Land):
         super()._set_data(heat)
 
         return self
+    
+    @Debugger.method_decorator('Showing the heat', ['HeatLand.show', 'HeatLand'])
+    def show(self):
+        Debugger(visual_debug=True).log_heat(self._flow_data)
+
+    @Debugger.method_decorator('Sending heat to flow_data', ['HeatLand.set_data', 'HeatLand'])
+    def __add__(self, other):
+        pass
 # TODO: add, sub, multiple, power, minus, zoom, crop, rotate

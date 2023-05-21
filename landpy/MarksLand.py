@@ -11,7 +11,7 @@ class MarksLand(Land):
     def __init__(self, x=None, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
         if x is not None:
-            self.set_marks(x)
+            MarksLand.set_marks(self, x)
 
     @Debugger.method_decorator('Setting marks!', ['MarksLand.set_marks', 'MarksLand'])
     def set_marks(self, x, y=None):

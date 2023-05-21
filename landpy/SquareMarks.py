@@ -5,7 +5,7 @@ class SquareMarks(QuadMarks):
     def __init__(self, minX=None, maxX=None, minY=None, maxY=None, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
         if minX is not None and maxX is not None and minY is not None and maxY is not None:
-            self.set_marks(minX, maxX, minY, maxY)
+            SquareMarks.set_marks(self, minX, maxX, minY, maxY)
         
     
     @Debugger.method_decorator('Copying SquareMarks', ['SquareMarks.copy', 'SquareMarks'])    

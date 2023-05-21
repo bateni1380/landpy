@@ -275,7 +275,7 @@ class Debugger:
                     fig.add_subplot(1, len(heats), i+1)
                 else:
                     fig.add_subplot(dim[0], dim[1], i+1)
-                plt.imshow(heats[i], cmap='Blues')
+                plt.imshow(heats[i], cmap='Oranges')
                 plt.axis('off')
                 if descs is not None and len(descs) > 0:
                     plt.title(descs[i])
@@ -366,22 +366,35 @@ class Debugger:
             self.__print(last_desc + ' ended', self.__get_line_info(),
                          Debugger.__get_time_info(time.time()-last_time))
 
-
+    def __modify_method_args(func, self, func_args, func_kargs):
+        # Get the original function's signature and bind any default values
+        sig = inspect.signature(func)
+        bound_args = sig.bind_partial(self, *func_args, **func_kargs)
+        for param_name, param in sig.parameters.items():
+            if param_name not in bound_args.arguments and param.default is not inspect.Parameter.empty:
+                bound_args.arguments[param_name] = param.default
+        return bound_args
+    
+    def __modify_static_method_args(func, func_args, func_kargs):
+        # Get the original function's signature and bind any default values
+        sig = inspect.signature(func)
+        bound_args = sig.bind_partial(*func_args, **func_kargs)
+        for param_name, param in sig.parameters.items():
+            if param_name not in bound_args.arguments and param.default is not inspect.Parameter.empty:
+                bound_args.arguments[param_name] = param.default
+        return bound_args
+                
     def method_decorator(desc: str, log_categories: List):
         def dec_wrapper(func):
             def func_wrapper(self, *func_args, **func_kargs):
-                # Get the original function's signature and bind any default values
-                sig = inspect.signature(func)
-                bound_args = sig.bind_partial(*func_args, **func_kargs)
-                for param in sig.parameters.values():
-                    if param.name not in bound_args.arguments and param.default is not inspect.Parameter.empty:
-                        bound_args.arguments[param.name] = param.default
+                bound_args = Debugger.__modify_method_args(func, self, func_args, func_kargs)
 
                 self._debugger.append_last_log_categories(log_categories)
                 self._debugger.log_start(desc, categories=self._debugger.get_last_log_categories())
-                result = func(self, *bound_args.args, **bound_args.kwargs)
+                result = func(**bound_args.arguments)
                 self._debugger.log_end(categories=self._debugger.get_last_log_categories())
                 self._debugger.pop_last_log_categories()
+
                 return result
             return func_wrapper
         return dec_wrapper
@@ -390,12 +403,7 @@ class Debugger:
     def static_method_decorator(desc: str, log_categories: List):
         def dec_wrapper(func):
             def func_wrapper(*func_args, **func_kargs):
-                # Get the original function's signature and bind any default values
-                sig = inspect.signature(func)
-                bound_args = sig.bind_partial(*func_args, **func_kargs)
-                for param in sig.parameters.values():
-                    if param.name not in bound_args.arguments and param.default is not inspect.Parameter.empty:
-                        bound_args.arguments[param.name] = param.default
+                bound_args =Debugger.__modify_static_method_args(func, func_args, func_kargs)
 
                 debugger = None
                 if 'debugger' in func_kargs:
@@ -407,7 +415,7 @@ class Debugger:
 
                 debugger.append_last_log_categories(log_categories)
                 debugger.log_start(desc, categories=debugger.get_last_log_categories())
-                result = func(*bound_args.args, **bound_args.kwargs)
+                result = func(**bound_args.arguments)
                 debugger.log_end(categories=debugger.get_last_log_categories())
                 debugger.pop_last_log_categories()
 
