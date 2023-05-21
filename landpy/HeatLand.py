@@ -36,7 +36,7 @@ class HeatLand(Land):
     def __sub__(self, other):
        return HeatLand(np.minimum(self._flow_data, other._flow_data), self._debugger)
 
-    @Debugger.method_decorator('Substracting two heats (minimums in each place)', ['HeatLand.__sub__', 'HeatLand'])
+    @Debugger.method_decorator('Multiplying a number to a heats', ['HeatLand.__rmul__', 'HeatLand'])
     def __rmul__(self, other):
        if isinstance(other, int) or isinstance(other, float):
             # Multiply the value of MyClass instance with an integer
