@@ -1,4 +1,4 @@
-from landpy.HeatLand import HeatLand
+from landpy import HeatLand
 
 def zero_heat(width, height) -> HeatLand:
     pass 

@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, Iterable, List, Literal, Tuple, AnyStr
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-
+import matplotlib.colors as mcolors
 
 class Debugger:
     '''
@@ -218,6 +218,8 @@ class Debugger:
                     fig.add_subplot(dim[0], dim[1], i+1)
                 rect = patches.Rectangle(
                     (0, 0), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
+                if not plt.gca().yaxis_inverted():
+                    plt.gca().invert_yaxis()
                 plt.gca().add_patch(rect)
                 plt.scatter(scatters[i][:, 0], scatters[i][:, 1])
                 plt.axis('equal')
@@ -275,8 +277,9 @@ class Debugger:
                     fig.add_subplot(1, len(heats), i+1)
                 else:
                     fig.add_subplot(dim[0], dim[1], i+1)
-                plt.imshow(heats[i], cmap='Oranges')
-                plt.axis('off')
+                plt.imshow(heats[i], cmap='YlOrRd', vmin=0.0, vmax=1.0)
+                plt.colorbar()
+                #plt.axis('off')
                 if descs is not None and len(descs) > 0:
                     plt.title(descs[i])
             plt.show()

@@ -1,4 +1,4 @@
-from landpy import Debugger, Land
+from landpy import Debugger, Land, HeatLand
 from typing import Callable, List, Tuple, Dict, Literal, Any, Iterable, Union
 
 import numpy as np
@@ -8,10 +8,10 @@ import cv2
 
 
 class MarksLand(Land):
-    def __init__(self, x=None, debugger: Debugger = Debugger(debug=False)):
+    def __init__(self, x=None, y=None, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
         if x is not None:
-            MarksLand.set_marks(self, x)
+            MarksLand.set_marks(self, x, y)
 
     @Debugger.method_decorator('Setting marks!', ['MarksLand.set_marks', 'MarksLand'])
     def set_marks(self, x, y=None):
@@ -200,13 +200,14 @@ class MarksLand(Land):
     def to_list(self):
         return (self._flow_data).tolist()
 
-    def to_heat(self, shape):
-        heat_p = np.ones(shape)
+    def to_heat(self, shape=(128,128), debugger: Debugger = Debugger(debug=False)):
+        heat_p = np.zeros(shape)
         pts = self._flow_data.copy()
-        pts[:,0] = (pts[:,0]*shape[0]).astype(int)
-        pts[:,1] = (pts[:,1]*shape[1]).astype(int)
-        print(pts.tolist())
-        cv2.fillPoly(heat_p, pts=[pts.tolist()], color=(1))
-        return heat_p
+        pts[:,0] = pts[:,0]*shape[0]
+        pts[:,1] = pts[:,1]*shape[1]
+        pts = pts.astype(int).reshape((-1, 1, 2))
+        cv2.fillPoly(heat_p, pts=[pts], color=(1))
+        heat = HeatLand(heat_p, debugger)
+        return heat
 
     ################################# TODO #################################

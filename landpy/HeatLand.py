@@ -3,7 +3,7 @@ import numpy as np
 
 
 class HeatLand(Land):
-    def __init__(self, heat=None,  debugger: Debugger = Debugger(debug=False)):
+    def __init__(self, heat=None, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
         if heat is not None:
             HeatLand.set_heat(self, heat)
@@ -28,7 +28,23 @@ class HeatLand(Land):
     def show(self):
         Debugger(visual_debug=True).log_heat(self._flow_data)
 
-    @Debugger.method_decorator('Sending heat to flow_data', ['HeatLand.set_data', 'HeatLand'])
+    @Debugger.method_decorator('Adding two heats (maximums in each place)', ['HeatLand.__add__', 'HeatLand'])
     def __add__(self, other):
-        pass
-# TODO: add, sub, multiple, power, minus, zoom, crop, rotate
+        return HeatLand(np.maximum(self._flow_data, other._flow_data), self._debugger)
+
+    @Debugger.method_decorator('Substracting two heats (minimums in each place)', ['HeatLand.__sub__', 'HeatLand'])
+    def __sub__(self, other):
+       return HeatLand(np.minimum(self._flow_data, other._flow_data), self._debugger)
+
+    @Debugger.method_decorator('Substracting two heats (minimums in each place)', ['HeatLand.__sub__', 'HeatLand'])
+    def __rmul__(self, other):
+       if isinstance(other, int) or isinstance(other, float):
+            # Multiply the value of MyClass instance with an integer
+            return HeatLand(np.maximum(np.minimum(other*self._flow_data, 1),0), self._debugger)
+       else:
+           raise TypeError("Unsupported operand type for *: {} and MyClass".format(type(other)))
+
+    @Debugger.method_decorator('Substracting two heats (minimums in each place)', ['HeatLand.__sub__', 'HeatLand'])
+    def __sub__(self, other):
+       return HeatLand(np.minimum(self._flow_data, other._flow_data), self._debugger)
+# TODO: multiple, power, minus, zoom, crop, rotate
