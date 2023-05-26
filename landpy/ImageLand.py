@@ -23,13 +23,13 @@ class ImageLand(Land):
             image = np.array(image)
 
         self._debugger.log_image(
-            image, 'Sent Image', categories=self._debugger.get_last_log_categories())
+            image, 'Set Image', categories=self._debugger.get_last_log_categories())
 
         if image.dtype in ('float32', 'float64'):
             image = (image*255)
+
         super()._set_data(image.astype('uint8'))
-        self._debugger.log_image(
-            self._flow_data, "Set image", categories=self._debugger.get_last_log_categories())
+
         return self
 
     @Debugger.method_decorator('Returning image!', ['ImageLand.get_image', 'ImageLand'])
