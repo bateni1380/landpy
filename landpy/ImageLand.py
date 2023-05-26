@@ -131,7 +131,6 @@ class ImageLand(Land):
 
         return image
 
-    # TODO: zoom in images using QuadMarks
     @Debugger.method_decorator('Zooming in image', ['ImageLand.zoom', 'ImageLand'])
     def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace: bool = True, fill_color=(0, 0, 0)):
         if save_trace:
@@ -175,7 +174,6 @@ class ImageLand(Land):
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
 
-    # TODO: zoom back in images using QuadMarks
     @Debugger.static_method_decorator('Zooming back image', ['ImageLand.__zoom_back', 'ImageLand'])
     def __zoom_back(image, pars: Dict, debugger: Debugger):
         last_image = pars['last_image']
