@@ -258,7 +258,7 @@ class ImageLand(Land):
 
         return back_image
 
-    # NOT DONE
+    # TODO: Implant Filter
     @Debugger.method_decorator('implanting filter in image', ['ImageLand.implant_filter', 'ImageLand'])
     def implant_filter(self, filter: Filter, heat: HeatLand = None):
         # NOT DONE
@@ -275,5 +275,6 @@ class ImageLand(Land):
             heat = full_heat(
                 self._flow_data.shape[0], self._flow_data.shape[1])
 
+    # TODO: Implant Image
     def implant_image(self, src_land: MarksLand, plant_land: MarksLand, plant_img: np.ndarray):
         pass  # challenge
