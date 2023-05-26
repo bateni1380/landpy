@@ -194,7 +194,6 @@ class HeatLand(Land):
         self._debugger.log_saved_heats(
             categories=self._debugger.get_last_log_categories())
 
-    # TODO: zoom back in images using QuadMarks
     @Debugger.static_method_decorator('Zooming back heat', ['HeatLand.__zoom_back', 'HeatLand'])
     def __zoom_back(heat, pars: Dict, debugger: Debugger):
         last_heat = pars['last_heat']
@@ -225,3 +224,5 @@ class HeatLand(Land):
             categories=debugger.get_last_log_categories())
 
         return last_heat
+    
+# TODO : adopting operators (minus or ~)

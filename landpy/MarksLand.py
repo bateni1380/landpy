@@ -123,7 +123,6 @@ class MarksLand(Land):
 
         return rotated_points
 
-    # TODO: zoom back in marksland using QuadMarks
     @Debugger.method_decorator('Zooming marks', ['MarksLand.zoom', 'MarksLand'])
     def zoom(self, quadrilateral, save_trace: bool = True):
         from landpy import QuadMarks, SquareMarks
@@ -148,7 +147,6 @@ class MarksLand(Land):
         self._debugger.log_saved_scatters(
             categories=self._debugger.get_last_log_categories())
 
-    # TODO: zoom back in marksland using QuadMarks
     @Debugger.static_method_decorator('Zooming back marks', ['MarksLand.__zoom_back', 'MarksLand'])
     def __zoom_back(marksland, pars: Dict, debugger: Debugger):
         from landpy import QuadMarks, SquareMarks
@@ -212,5 +210,3 @@ class MarksLand(Land):
         cv2.fillPoly(heat_p, pts=[pts], color=(1))
         heat = HeatLand(heat_p, self._debugger)
         return heat
-
-    # TODO ################################# adopting decorators
