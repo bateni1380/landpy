@@ -11,12 +11,13 @@ import math
 from PIL import Image
 
 # TODO: histogram_equalize
+
+
 class ImageLand(Land):
-    def __init__(self, image = None, debugger: Debugger = Debugger(debug=False)):
+    def __init__(self, image=None, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
         if image is not None:
             ImageLand.set_image(self, image)
-
 
     @Debugger.method_decorator('Setting image', ['ImageLand.set_data', 'ImageLand'])
     def set_image(self, image: np.ndarray):
@@ -29,7 +30,8 @@ class ImageLand(Land):
         if image.dtype in ('float32', 'float64'):
             image = (image*255)
         super()._set_data(image.astype('uint8'))
-
+        self._debugger.log_image(
+            self._flow_data, "Set image", categories=self._debugger.get_last_log_categories())
         return self
 
     @Debugger.method_decorator('Returning image!', ['ImageLand.get_image', 'ImageLand'])
@@ -41,7 +43,7 @@ class ImageLand(Land):
         Debugger(visual_debug=True).log_image(self._flow_data)
 
     @Debugger.method_decorator('Rotating image', ['ImageLand.rotate', 'ImageLand'])
-    def rotate(self, angle: float, center: Tuple = None, save_trace: bool = True, fill_color = (0, 0, 0)):
+    def rotate(self, angle: float, center: Tuple = None, save_trace: bool = True, fill_color=(0, 0, 0)):
         height, width = self._flow_data.shape[:2]
         if center == None:
             center = (int(width/2), int(height/2))
@@ -130,9 +132,9 @@ class ImageLand(Land):
 
         return image
 
-    #TODO: zoom in images using QuadMarks
+    # TODO: zoom in images using QuadMarks
     @Debugger.method_decorator('Zooming in image', ['ImageLand.zoom', 'ImageLand'])
-    def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace: bool = True, fill_color = (0, 0, 0)):
+    def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace: bool = True, fill_color=(0, 0, 0)):
         if save_trace:
             self._make_trace(ImageLand.__zoom_back, {'last_image': self._flow_data.copy(),
                                                      'quadrilateral': quadrilateral.copy()})
@@ -166,7 +168,7 @@ class ImageLand(Land):
 
         elif type(quadrilateral) is QuadMarks:
             self._debugger.log_exception("Zooming in image using QuadMarks is not supported yet!",
-                               "Exception"+self._debugger.get_last_log_categories())
+                                         "Exception"+self._debugger.get_last_log_categories())
 
         self._debugger.save_image(self._flow_data, 'Image after zoom',
                                   categories=self._debugger.get_last_log_categories())
@@ -174,7 +176,7 @@ class ImageLand(Land):
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
 
-    #TODO: zoom back in images using QuadMarks
+    # TODO: zoom back in images using QuadMarks
     @Debugger.static_method_decorator('Zooming back image', ['ImageLand.__zoom_back', 'ImageLand'])
     def __zoom_back(image, pars: Dict, debugger: Debugger):
         last_image = pars['last_image']
@@ -194,7 +196,7 @@ class ImageLand(Land):
             if last_image.shape[2] == 4:
                 mask = image[max(
                     0, -minX):max(0, -minX)+x_len, max(0, -minY):max(0, -minY)+y_len, 3] == 0
-                mask = np.stack([mask,mask,mask,mask], axis=2)
+                mask = np.stack([mask, mask, mask, mask], axis=2)
                 last_image[max(0, minX):max(0, minX)+x_len, max(0, minY):max(0, minY)+y_len] = image[max(
                     0, -minX):max(0, -minX)+x_len, max(0, -minY):max(0, -minY)+y_len]*(1-mask) + last_image[max(
                         0, minX):max(0, minX)+x_len, max(0, minY):max(0, minY)+y_len]*(mask)
@@ -204,7 +206,7 @@ class ImageLand(Land):
 
         elif type(quadrilateral) is QuadMarks:
             debugger.log_exception("Zooming back in image using QuadMarks is not supported yet!",
-                         "Exception"+debugger.get_last_log_categories())
+                                   "Exception"+debugger.get_last_log_categories())
 
         debugger.save_image(pars['last_image'], 'Image after zoom back',
                             categories=debugger.get_last_log_categories())

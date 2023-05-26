@@ -97,4 +97,8 @@ class Land:
     def clear_checkpoint_history(self):
         del self.__checkpoint_history
         self.__checkpoint_history = []   
-        self.__checkpoint_version = -1     
+        self.__checkpoint_version = -1  
+
+    @Debugger.method_decorator('Getting i\'th item of land', ['Land.__getitem__', 'Land'])
+    def __getitem__(self, ind):
+        return self._flow_data[ind] 
