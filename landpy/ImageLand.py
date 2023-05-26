@@ -10,8 +10,6 @@ import matplotlib.pyplot as plt
 import math
 from PIL import Image
 
-# TODO: histogram_equalize
-
 
 class ImageLand(Land):
     def __init__(self, image=None, debugger: Debugger = Debugger(debug=False)):
@@ -169,7 +167,7 @@ class ImageLand(Land):
 
         elif type(quadrilateral) is QuadMarks:
             self._debugger.log_exception("Zooming in image using QuadMarks is not supported yet!",
-                                         "Exception"+self._debugger.get_last_log_categories())
+                                         ["Exception"]+self._debugger.get_last_log_categories())
 
         self._debugger.save_image(self._flow_data, 'Image after zoom',
                                   categories=self._debugger.get_last_log_categories())
@@ -207,7 +205,7 @@ class ImageLand(Land):
 
         elif type(quadrilateral) is QuadMarks:
             debugger.log_exception("Zooming back in image using QuadMarks is not supported yet!",
-                                   "Exception"+debugger.get_last_log_categories())
+                                   ["Exception"]+debugger.get_last_log_categories())
 
         debugger.save_image(pars['last_image'], 'Image after zoom back',
                             categories=debugger.get_last_log_categories())
@@ -216,6 +214,49 @@ class ImageLand(Land):
             categories=debugger.get_last_log_categories())
 
         return last_image
+
+    @Debugger.method_decorator('Applying histogram equalization method on the image', ['ImageLand.histogram_equalization', 'ImageLand'])
+    def equalize_histogram(self, save_trace: bool = True):
+        lab_image = cv2.cvtColor(self._flow_data, cv2.COLOR_RGB2Lab)
+        l_channel, a_channel, b_channel = cv2.split(lab_image)
+
+        if save_trace:
+            self._make_trace(ImageLand.__equalize_histogram_back, {
+                             'last_l_channel': l_channel.copy()})
+
+        self._debugger.save_image(self._flow_data, 'Image before histogram equalization',
+                                  categories=self._debugger.get_last_log_categories())
+        equ_l_channel = cv2.equalizeHist(l_channel)
+        equ_lab_image = cv2.merge((equ_l_channel, a_channel, b_channel))
+        equalized_image = cv2.cvtColor(equ_lab_image, cv2.COLOR_Lab2RGB)
+        self._flow_data = equalized_image
+        self._debugger.save_image(self._flow_data, 'Image after histogram equalization',
+                                  categories=self._debugger.get_last_log_categories())
+
+        self._debugger.log_saved_images(
+            categories=self._debugger.get_last_log_categories())
+
+    @Debugger.static_method_decorator('Applying inverse of histogram equalization method on the image', ['ImageLand.__equalizatie_histogram_back', 'ImageLand'])
+    def __equalize_histogram_back(image, pars: Dict, debugger: Debugger):
+        last_l_channel = pars['last_l_channel']
+        if last_l_channel.shape != image.shape[:2]:
+            debugger.log_exception("You can\'t apply equalize_histogram_back beacuase shapes have been changed "+
+                                   "from {} to {}".format(last_l_channel.shape, image.shape[:2]),
+                                   ["Exception"]+debugger.get_last_log_categories())
+            
+        debugger.save_image(image, 'Image before zoom back',
+                            categories=debugger.get_last_log_categories())
+        equ_lab_image = cv2.cvtColor(image, cv2.COLOR_RGB2Lab)
+        equ_l_channel, a_channel, b_channel = cv2.split(equ_lab_image)
+        back_lab_image = cv2.merge((last_l_channel, a_channel, b_channel))
+        back_image = cv2.cvtColor(back_lab_image, cv2.COLOR_Lab2RGB)
+        debugger.save_image(back_image, 'Image after zoom back',
+                            categories=debugger.get_last_log_categories())
+
+        debugger.log_saved_images(
+            categories=debugger.get_last_log_categories())
+
+        return back_image
 
     # NOT DONE
     @Debugger.method_decorator('implanting filter in image', ['ImageLand.implant_filter', 'ImageLand'])
