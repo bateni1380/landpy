@@ -242,13 +242,13 @@ class ImageLand(Land):
                                    "from {} to {}".format(last_l_channel.shape, image.shape[:2]),
                                    ["Exception"]+debugger.get_last_log_categories())
             
-        debugger.save_image(image, 'Image before zoom back',
+        debugger.save_image(image, 'Image before histogram equalization back',
                             categories=debugger.get_last_log_categories())
         equ_lab_image = cv2.cvtColor(image, cv2.COLOR_RGB2Lab)
         equ_l_channel, a_channel, b_channel = cv2.split(equ_lab_image)
         back_lab_image = cv2.merge((last_l_channel, a_channel, b_channel))
         back_image = cv2.cvtColor(back_lab_image, cv2.COLOR_Lab2RGB)
-        debugger.save_image(back_image, 'Image after zoom back',
+        debugger.save_image(back_image, 'Image after histogram equalization back',
                             categories=debugger.get_last_log_categories())
 
         debugger.log_saved_images(
