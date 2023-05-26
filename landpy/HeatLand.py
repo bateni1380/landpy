@@ -1,7 +1,9 @@
 from typing import Callable, List, Tuple, Dict, Literal, Any, Iterable, Union
 from landpy import Debugger, Land
+import cv2
 import math
 import numpy as np
+from PIL import Image
 from landpy import QuadMarks, SquareMarks, Filter
 
 
@@ -60,6 +62,94 @@ class HeatLand(Land):
                 type(other)), categories=['Exception']+self._debugger.get_last_log_categories())
 
         return HeatLand(np.maximum(np.minimum(self._flow_data**other, 1), 0), self._debugger)
+
+    @Debugger.method_decorator('Rotating heat', ['HeatLand.rotate', 'HeatLand'])
+    def rotate(self, angle: float, center: Tuple = None, save_trace: bool = True, fill_color=0):
+        height, width = self._flow_data.shape[:2]
+        if center == None:
+            center = (int(width/2), int(height/2))
+
+        self._debugger.log('(angle, center) = ({}, {})'.format(
+            angle, center), categories=self._debugger.get_last_log_categories())
+
+        rotation_matrix = cv2.getRotationMatrix2D(
+            center=center, angle=angle, scale=1)
+
+        self._debugger.save_heat(
+            self._flow_data, 'Heat before rotation', categories=self._debugger.get_last_log_categories())
+        self._flow_data = cv2.warpAffine(src=self._flow_data, M=rotation_matrix, dsize=(
+            width, height), borderMode=cv2.BORDER_CONSTANT, borderValue=fill_color)
+        self._debugger.save_heat(
+            self._flow_data, 'Heat after rotation', categories=self._debugger.get_last_log_categories())
+
+        if save_trace:
+            self._make_trace(HeatLand.__rotate_back, {
+                             'angle': angle, 'center': center})
+
+        self._debugger.log_saved_heats(
+            categories=self._debugger.get_last_log_categories())
+
+    @Debugger.static_method_decorator('Rotating back heat', ['HeatLand.__rotate_back', 'HeatLand'])
+    def __rotate_back(heat, pars: Dict, debugger: Debugger):
+        debugger.log('(angle, center) = ({}, {})'
+                     .format(-pars['angle'], pars['center']), categories=debugger.get_last_log_categories())
+
+        height, width = heat.shape[:2]
+        rotation_matrix = cv2.getRotationMatrix2D(
+            center=pars['center'], angle=-pars['angle'], scale=1)
+
+        debugger.save_heat(
+            image, 'Heat before rotation back', categories=debugger.get_last_log_categories())
+        image = cv2.warpAffine(src=image, M=rotation_matrix, dsize=(
+            width, height), borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
+        debugger.save_heat(
+            image, 'Heat after rotation back', categories=debugger.get_last_log_categories())
+
+        debugger.log_saved_heats(
+            categories=debugger.get_last_log_categories())
+
+        return heat
+
+    @Debugger.method_decorator('Reshaping heat', ['HeatLand.reshape', 'HeatLand'])
+    def reshape(self, shape, save_trace: bool = True):
+        width, height = shape[0], shape[1]
+        self._debugger.log('(w, h) = ({}, {})'.format(
+            width, height), categories=self._debugger.get_last_log_categories())
+
+        heat = Image.fromarray((self._flow_data*255).astype('uint8'))
+
+        if save_trace:
+            self._make_trace(HeatLand.__reshape_back, {'width': heat.width,
+                                                        'height': heat.height})
+
+        self._debugger.save_heat(
+            self._flow_data, 'Heat before reshape', categories=self._debugger.get_last_log_categories())
+        heat = heat.resize((width, height))
+        heat = np.array(heat, dtype='float32')/255
+        self.set_heat(heat)
+        self._debugger.save_heat(
+            self._flow_data, 'Heat after reshape', categories=self._debugger.get_last_log_categories())
+
+        self._debugger.log_saved_heats(
+            categories=self._debugger.get_last_log_categories())
+
+    @Debugger.static_method_decorator('Reshaping back heat', ['HeatLand.__reshape_back', 'HeatLand'])
+    def __reshape_back(heat, pars: Dict, debugger: Debugger):
+        debugger.log('(w, h) = ({}, {})'.format(
+            pars['width'], pars['height']), categories=debugger.get_last_log_categories())
+
+        debugger.save_heat(heat, 'Heat before reshape',
+                            categories=debugger.get_last_log_categories())
+        heat = Image.fromarray((heat*255).astype('uint8'))
+        heat = heat.resize((pars['width'], pars['height']))
+        heat = np.array(heat, dtype='float32')/255
+        debugger.save_heat(heat, 'Heat after reshape',
+                            categories=debugger.get_last_log_categories())
+
+        debugger.log_saved_heats(
+            categories=debugger.get_last_log_categories())
+
+        return heat
 
     @Debugger.method_decorator('Zooming in heat', ['HeatLand.zoom', 'HeatLand'])
     def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace: bool = True, fill_heat=0):
@@ -135,5 +225,3 @@ class HeatLand(Land):
             categories=debugger.get_last_log_categories())
 
         return last_heat
-
-# TODO: zoom, crop, rotate

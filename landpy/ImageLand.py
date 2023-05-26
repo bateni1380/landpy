@@ -90,7 +90,8 @@ class ImageLand(Land):
         return image
 
     @Debugger.method_decorator('Reshaping image', ['ImageLand.reshape', 'ImageLand'])
-    def reshape(self, width, height, mode='RGB', save_trace: bool = True):
+    def reshape(self, shape, mode='RGB', save_trace: bool = True):
+        width, height = shape[0], shape[1]
         self._debugger.log('(w, h, mode) = ({}, {}, {})'.format(
             width, height, mode), categories=self._debugger.get_last_log_categories())
 
