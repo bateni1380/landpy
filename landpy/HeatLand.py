@@ -15,9 +15,7 @@ class HeatLand(Land):
 
     @Debugger.method_decorator('Setting heat', ['HeatLand.set_data', 'HeatLand'])
     def set_heat(self, heat: np.ndarray):
-        if type(heat) is not np.ndarray:
-            self._debugger.log_exception('heat must be an ndarray!',
-                                         categories=['Exception']+self._debugger.get_last_log_categories())
+        heat = np.array(heat)
         if len(heat.shape) != 2:
             self._debugger.log_exception('heat must be a 2darray!',
                                          categories=['Exception']+self._debugger.get_last_log_categories())

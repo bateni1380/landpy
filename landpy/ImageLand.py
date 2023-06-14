@@ -222,13 +222,13 @@ class ImageLand(Land):
             self._make_trace(ImageLand.__equalize_histogram_back, {
                              'last_l_channel': l_channel.copy()})
 
-        self._debugger.save_image(self._flow_data, 'Image before histogram equalization',
+        self._debugger.save_image(self._flow_data, 'Image before h.e.',
                                   categories=self._debugger.get_last_log_categories())
         equ_l_channel = cv2.equalizeHist(l_channel)
         equ_lab_image = cv2.merge((equ_l_channel, a_channel, b_channel))
         equalized_image = cv2.cvtColor(equ_lab_image, cv2.COLOR_Lab2RGB)
         self._flow_data = equalized_image
-        self._debugger.save_image(self._flow_data, 'Image after histogram equalization',
+        self._debugger.save_image(self._flow_data, 'Image after h.e.',
                                   categories=self._debugger.get_last_log_categories())
 
         self._debugger.log_saved_images(
@@ -242,13 +242,13 @@ class ImageLand(Land):
                                    "from {} to {}".format(last_l_channel.shape, image.shape[:2]),
                                    ["Exception"]+debugger.get_last_log_categories())
             
-        debugger.save_image(image, 'Image before histogram equalization back',
+        debugger.save_image(image, 'Image before h.e. inverse',
                             categories=debugger.get_last_log_categories())
         equ_lab_image = cv2.cvtColor(image, cv2.COLOR_RGB2Lab)
         equ_l_channel, a_channel, b_channel = cv2.split(equ_lab_image)
         back_lab_image = cv2.merge((last_l_channel, a_channel, b_channel))
         back_image = cv2.cvtColor(back_lab_image, cv2.COLOR_Lab2RGB)
-        debugger.save_image(back_image, 'Image after histogram equalization back',
+        debugger.save_image(back_image, 'Image after h.e. inverse',
                             categories=debugger.get_last_log_categories())
 
         debugger.log_saved_images(
@@ -259,19 +259,19 @@ class ImageLand(Land):
     # TODO: Implant Filter
     @Debugger.method_decorator('implanting filter in image', ['ImageLand.implant_filter', 'ImageLand'])
     def implant_filter(self, filter: Filter, heat: HeatLand = None):
-        # NOT DONE
+        if heat is None:
+            heat = full_heat(
+                self._flow_data.shape[0], self._flow_data.shape[1], self._debugger)
+        
         self._debugger.save_image(self._flow_data, 'Image before implant',
                                   categories=self._debugger.get_last_log_categories())
-        self._flow_data = ((self._flow_data+(255, 0, 0, 255))/2).astype(int)
+        self._flow_data = ((self._flow_data+(255, 0, 255))/2).astype(int)
         self._debugger.save_image(self._flow_data, 'Image after implant',
                                   categories=self._debugger.get_last_log_categories())
 
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
 
-        if heat is None:
-            heat = full_heat(
-                self._flow_data.shape[0], self._flow_data.shape[1])
 
     # TODO: Implant Image
     def implant_image(self, src_land: MarksLand, plant_land: MarksLand, plant_img: np.ndarray):

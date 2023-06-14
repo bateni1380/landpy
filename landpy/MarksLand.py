@@ -28,6 +28,9 @@ class MarksLand(Land):
     def __x_to_flow_data(x, debugger):
         marks = np.array(x)
         if len(marks.shape) == 1:
+            if marks.shape[0] != 2:
+                debugger.log_exception('x must be a (n,2) matrice or vector of 2!',
+                                       categories=['Exception']+debugger.get_last_log_categories())
             marks = marks.reshape((1, -1))
         return marks
 
