@@ -256,7 +256,7 @@ class ImageLand(Land):
 
         return back_image
 
-    # TODO: Implant Filter
+    # TODO 1: Implant Filter
     @Debugger.method_decorator('implanting filter in image', ['ImageLand.implant_filter', 'ImageLand'])
     def implant_filter(self, filter: Filter, heat: HeatLand = None):
         if heat is None:
