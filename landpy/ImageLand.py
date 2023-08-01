@@ -65,6 +65,7 @@ class ImageLand(Land):
 
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
+        
 
     @Debugger.static_method_decorator('Rotating back image', ['ImageLand.__rotate_back', 'ImageLand'])
     def __rotate_back(image, pars: Dict, debugger: Debugger):
@@ -265,7 +266,9 @@ class ImageLand(Land):
         
         self._debugger.save_image(self._flow_data, 'Image before implant',
                                   categories=self._debugger.get_last_log_categories())
-        self._flow_data = ((self._flow_data+(255, 0, 255))/2).astype(int)
+        
+        self._flow_data = filter.apply_function(self._flow_data).astype(int)
+
         self._debugger.save_image(self._flow_data, 'Image after implant',
                                   categories=self._debugger.get_last_log_categories())
 
