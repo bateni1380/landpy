@@ -29,21 +29,21 @@ class MarksLand(Land):
         marks = np.array(x)
         if len(marks.shape) == 1:
             if marks.shape[0] != 2:
-                debugger.log_exception('x must be a (n,2) matrice or vector of 2!',
-                                       categories=['Exception']+debugger.get_last_log_categories())
+                debugger.log_exception(
+                    'x must be a (n,2) matrice or vector of 2!', debugger.get_last_log_categories())
             marks = marks.reshape((1, -1))
         return marks
 
     @Debugger.static_method_decorator('Converting to (n,2) matrix', ['MarksLand.__xy_to_flow_data', 'MarksLand'])
     def __xy_to_flow_data(x, y, debugger):
         if type(x) not in [list, tuple, np.ndarray] or type(y) not in [list, tuple, np.ndarray]:
-            debugger.log_exception('x and y must be list\\tuple\\ndarray!',
-                                   categories=['Exception']+debugger.get_last_log_categories())
+            debugger.log_exception(
+                'x and y must be list\\tuple\\ndarray!', debugger.get_last_log_categories())
 
         x, y = np.array(x), np.array(y)
         if x.shape != y.shape:
-            debugger.log_exception('x and y must have equal size!',
-                                   categories=['Exception']+debugger.get_last_log_categories())
+            debugger.log_exception(
+                'x and y must have equal size!', debugger.get_last_log_categories())
 
         x = np.array(x).reshape(-1, 1)
         y = np.array(y).reshape(-1, 1)
@@ -97,6 +97,8 @@ class MarksLand(Land):
         self._debugger.log_saved_scatters(
             categories=self._debugger.get_last_log_categories())
 
+        return self
+
     @Debugger.static_method_decorator('Rotating back marks', ['MarksLand.__rotate_back', 'MarksLand'])
     def __rotate_back(marks, pars: Dict, debugger: Debugger):
         angle, center = pars['angle'], pars['center']
@@ -141,14 +143,16 @@ class MarksLand(Land):
             self._flow_data[:, 1] = (
                 self._flow_data[:, 1]-quadrilateral.minY)/(quadrilateral.maxX-quadrilateral.minY)
         elif type(quadrilateral) is QuadMarks:
-            self._debugger.log_exception("Zooming in MarksLand using QuadMarks is not supported yet!",
-                                         "Exception"+self._debugger.get_last_log_categories())
+            self._debugger.log_exception(
+                "Zooming in MarksLand using QuadMarks is not supported yet!", self._debugger.get_last_log_categories())
 
         self._debugger.save_scatter(
             self._flow_data, 'Marks after zoom!', categories=self._debugger.get_last_log_categories())
 
         self._debugger.log_saved_scatters(
             categories=self._debugger.get_last_log_categories())
+
+        return self
 
     @Debugger.static_method_decorator('Zooming back marks', ['MarksLand.__zoom_back', 'MarksLand'])
     def __zoom_back(marksland, pars: Dict, debugger: Debugger):
@@ -163,14 +167,16 @@ class MarksLand(Land):
             marksland[:, 1] = (
                 marksland[:, 1]*(quadrilateral.maxY-quadrilateral.minY))+quadrilateral.minY
         elif type(quadrilateral) is QuadMarks:
-            debugger.log_exception("Zooming back in MarksLand using QuadMarks is not supported yet!",
-                                   "Exception"+debugger.get_last_log_categories())
+            debugger.log_exception(
+                "Zooming back in MarksLand using QuadMarks is not supported yet!", debugger.get_last_log_categories())
 
         debugger.save_scatter(
             marksland, 'Marks after zoom back!', categories=debugger.get_last_log_categories())
 
         debugger.log_saved_scatters(
             categories=debugger.get_last_log_categories())
+
+        return marksland
 
     @Debugger.method_decorator('Adding two marks (append marks togetter)', ['MarksLand.__add__', 'MarksLand'])
     def __add__(self, other):
@@ -203,13 +209,15 @@ class MarksLand(Land):
         return (self._flow_data).tolist()
 
     @Debugger.method_decorator('Converting marks object to a landpy heat', ['MarksLand.to_heat', 'MarksLand'])
-    def to_heat(self, shape=(128, 128)):
+    def to_heat(self, shape=(128, 128), fill_heat=1):
         from landpy import HeatLand
         heat_p = np.zeros(shape)
         pts = self._flow_data.copy()
         pts[:, 0] = pts[:, 0]*shape[0]
         pts[:, 1] = pts[:, 1]*shape[1]
         pts = pts.astype(int).reshape((-1, 1, 2))
-        cv2.fillPoly(heat_p, pts=[pts], color=(1))
+        cv2.fillPoly(heat_p, pts=[pts], color=(fill_heat))
         heat = HeatLand(heat_p, self._debugger)
         return heat
+
+#TODO : reshape in marksland

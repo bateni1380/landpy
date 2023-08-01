@@ -132,8 +132,15 @@ class Debugger:
         self.__log_end(categories)
 
     def log_exception(self, desc: str, categories: Iterable[str] = []):
-        self.log(desc, categories)
+        print('\033[91', end='')
+        self.log(desc, ["Exception"]+categories)
+        print('\033[0m', end='')
         raise Exception(desc)
+    
+    def log_warning(self, desc: str, categories: Iterable[str] = []):
+        print('\033[93m', end='')
+        self.log(desc, ["Warning"]+categories)
+        print('\033[0m', end='')
     
     def log_images(self, images: List[np.ndarray], descs: List[str] = None, dim: Tuple = None, categories: Iterable[str] = []):
         '''

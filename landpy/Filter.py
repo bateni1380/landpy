@@ -10,7 +10,7 @@ class Filter:
         else:
             self.color = np.array(color, dtype=float)
 
-        self.set_function(lambda pixel_color: (pixel_color+color)/2)
+        self.set_function(lambda c, h: (c*(1-h))+(color*h))
 
     def set_function(self, f):
         self.apply_function = f 

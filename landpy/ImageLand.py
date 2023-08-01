@@ -65,7 +65,8 @@ class ImageLand(Land):
 
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
-        
+
+        return self
 
     @Debugger.static_method_decorator('Rotating back image', ['ImageLand.__rotate_back', 'ImageLand'])
     def __rotate_back(image, pars: Dict, debugger: Debugger):
@@ -90,7 +91,7 @@ class ImageLand(Land):
 
     @Debugger.method_decorator('Reshaping image', ['ImageLand.reshape', 'ImageLand'])
     def reshape(self, shape, mode='RGB', save_trace: bool = True):
-        width, height = shape[0], shape[1]
+        width, height = shape[1], shape[0]
         self._debugger.log('(w, h, mode) = ({}, {}, {})'.format(
             width, height, mode), categories=self._debugger.get_last_log_categories())
 
@@ -112,6 +113,8 @@ class ImageLand(Land):
 
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
+
+        return self
 
     @Debugger.static_method_decorator('Reshaping back image', ['ImageLand.__reshape_back', 'ImageLand'])
     def __reshape_back(image, pars: Dict, debugger: Debugger):
@@ -166,14 +169,16 @@ class ImageLand(Land):
                     0, minX)+x_len, max(0, minY):max(0, minY)+y_len].astype('uint8')
 
         elif type(quadrilateral) is QuadMarks:
-            self._debugger.log_exception("Zooming in image using QuadMarks is not supported yet!",
-                                         ["Exception"]+self._debugger.get_last_log_categories())
+            self._debugger.log_exception(
+                "Zooming in image using QuadMarks is not supported yet!", self._debugger.get_last_log_categories())
 
         self._debugger.save_image(self._flow_data, 'Image after zoom',
                                   categories=self._debugger.get_last_log_categories())
 
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
+
+        return self
 
     @Debugger.static_method_decorator('Zooming back image', ['ImageLand.__zoom_back', 'ImageLand'])
     def __zoom_back(image, pars: Dict, debugger: Debugger):
@@ -203,8 +208,8 @@ class ImageLand(Land):
                     0, -minX):max(0, -minX)+x_len, max(0, -minY):max(0, -minY)+y_len]
 
         elif type(quadrilateral) is QuadMarks:
-            debugger.log_exception("Zooming back in image using QuadMarks is not supported yet!",
-                                   ["Exception"]+debugger.get_last_log_categories())
+            debugger.log_exception(
+                "Zooming back in image using QuadMarks is not supported yet!", debugger.get_last_log_categories())
 
         debugger.save_image(pars['last_image'], 'Image after zoom back',
                             categories=debugger.get_last_log_categories())
@@ -235,14 +240,15 @@ class ImageLand(Land):
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
 
+        return self
+
     @Debugger.static_method_decorator('Applying inverse of histogram equalization method on the image', ['ImageLand.__equalizatie_histogram_back', 'ImageLand'])
     def __equalize_histogram_back(image, pars: Dict, debugger: Debugger):
         last_l_channel = pars['last_l_channel']
         if last_l_channel.shape != image.shape[:2]:
-            debugger.log_exception("You can\'t apply equalize_histogram_back beacuase shapes have been changed "+
-                                   "from {} to {}".format(last_l_channel.shape, image.shape[:2]),
-                                   ["Exception"]+debugger.get_last_log_categories())
-            
+            debugger.log_exception("You can\'t apply equalize_histogram_back beacuase shapes have been changed " +
+                                   "from {} to {}".format(last_l_channel.shape, image.shape[:2]), debugger.get_last_log_categories())
+
         debugger.save_image(image, 'Image before h.e. inverse',
                             categories=debugger.get_last_log_categories())
         equ_lab_image = cv2.cvtColor(image, cv2.COLOR_RGB2Lab)
@@ -263,11 +269,16 @@ class ImageLand(Land):
         if heat is None:
             heat = full_heat(
                 self._flow_data.shape[0], self._flow_data.shape[1], self._debugger)
-        
+        if heat._flow_data.shape != self._flow_data.shape[:2]:
+            self._debugger.log_warning("Heat and Image weren\'t in the same size so heat is going to reshape!",
+                                       self._debugger.get_last_log_categories())
+            heat = heat.reshape(self._flow_data.shape[:2])
+
         self._debugger.save_image(self._flow_data, 'Image before implant',
                                   categories=self._debugger.get_last_log_categories())
-        
-        self._flow_data = filter.apply_function(self._flow_data).astype(int)
+
+        self._flow_data = filter.apply_function(
+            self._flow_data, np.dstack([heat._flow_data]*3)).astype(int)
 
         self._debugger.save_image(self._flow_data, 'Image after implant',
                                   categories=self._debugger.get_last_log_categories())
@@ -275,7 +286,11 @@ class ImageLand(Land):
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
 
+        heat.retrace()
+
+        return self
 
     # TODO: Implant Image
+
     def implant_image(self, src_land: MarksLand, plant_land: MarksLand, plant_img: np.ndarray):
         pass  # challenge
