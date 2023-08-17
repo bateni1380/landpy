@@ -38,7 +38,13 @@ class ImageLand(Land):
             self.mode = 'RGBA'
         return self
 
-    @Debugger.method_decorator('Calling convertor.rgb_to_rgba from to_rgba method (if its an rgb image)', ['ImageLand.to_rgba', 'ImageLand'])
+    @Debugger.method_decorator('Copying image', ['ImageLand.copy', 'ImageLand'])
+    def copy(self, save_trace=True):
+        copied_self = Land.copy(self, save_trace)
+        copied_self.mode = self.mode
+        return copied_self
+
+    @Debugger.method_decorator('Changing mode to rgba', ['ImageLand.to_rgba', 'ImageLand'])
     def to_rgba(self, copy_trace=True):
         copied_self = self.copy(copy_trace)
         if self.mode == 'RGBA':
@@ -51,7 +57,7 @@ class ImageLand(Land):
         copied_self.mode = 'RGBA'
         return copied_self
 
-    @Debugger.method_decorator('Calling convertor.rgba_to_rgb from to_rgb method (if its an rgba image)', ['ImageLand.to_rgb', 'ImageLand'])
+    @Debugger.method_decorator('Changing mode to rgb', ['ImageLand.to_rgb', 'ImageLand'])
     def to_rgb(self, copy_trace=True):
         copied_self = self.copy(copy_trace)
         if self.mode == 'RGB':
@@ -168,7 +174,11 @@ class ImageLand(Land):
         return image
 
     @Debugger.method_decorator('Zooming in image', ['ImageLand.zoom', 'ImageLand'])
-    def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace: bool = True, fill_color=(0, 0, 0)):
+    def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks, float], save_trace: bool = True, fill_color=(0, 0, 0)):
+        if type(quadrilateral) is float:
+            t = quadrilateral
+            quadrilateral = SquareMarks(t, 1-t, t, 1-t)
+
         if save_trace:
             self._make_trace(ImageLand.__zoom_back, {'last_image': self._flow_data.copy(),
                                                      'quadrilateral': quadrilateral.copy()})
@@ -297,6 +307,9 @@ class ImageLand(Land):
 
     @Debugger.method_decorator('implanting filter in image', ['ImageLand.implant_filter', 'ImageLand'])
     def implant_filter(self, filter: Filter, heat: HeatLand = None):
+        ImageLand.__save_plot(self, 'base', self._debugger)
+        ImageLand.__save_plot(heat, 'heat', self._debugger)
+
         if heat is None:
             heat = full_heat(
                 self._flow_data.shape[0], self._flow_data.shape[1], self._debugger)
@@ -306,14 +319,10 @@ class ImageLand(Land):
             heat = heat.copy(save_trace=False).reshape(
                 self._flow_data.shape[:2])
 
-        self._debugger.save_image(self._flow_data, 'Image before implant',
-                                  categories=self._debugger.get_last_log_categories())
-
         self._flow_data = filter.apply_function(
-            self._flow_data, np.dstack([heat._flow_data]*3)).astype(int)
+            self._flow_data, np.dstack([heat._flow_data]*3)).astype('uint8')
 
-        self._debugger.save_image(self._flow_data, 'Image after implant',
-                                  categories=self._debugger.get_last_log_categories())
+        ImageLand.__save_plot(self, 'result', self._debugger)
 
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
@@ -322,6 +331,10 @@ class ImageLand(Land):
 
     @Debugger.method_decorator('implanting image in image', ['ImageLand.implant_image', 'ImageLand'])
     def implant_image(self, plant_img: np.ndarray, src_land: SquareMarks = SquareMarks(), plant_land: SquareMarks = SquareMarks(), ratio=0.5):
+        ImageLand.__save_plot(self, 'base', self._debugger)
+        self._debugger.save_image(
+            plant_img, 'plant image', self._debugger.get_last_log_categories())
+
         if self.mode == 'RGBA':
             self = self.to_rgb()
         if plant_img.shape[2] == 3:
@@ -335,11 +348,12 @@ class ImageLand(Land):
                          src_img.shape[1]], dtype=float)
             src_pts = plant_land._flow_data * \
                 np.array([plant_img.shape[0], plant_img.shape[1]], dtype=float)
-            src_pts, dst_pts = np.floor(src_pts, dtype=np.float32), np.floor(dst_pts, dtype=np.float32)
+            src_pts, dst_pts = np.floor(src_pts, dtype=np.float32), np.floor(
+                dst_pts, dtype=np.float32)
             M = cv2.getPerspectiveTransform(src_pts, dst_pts)
             transformed_img = cv2.warpPerspective(
                 plant_img, M, (src_img.shape[1], src_img.shape[0]))
-            
+
             self._debugger.save_image(
                 transformed_img, 'transformed image', self._debugger.get_last_log_categories())
         else:
@@ -347,11 +361,98 @@ class ImageLand(Land):
                 'other implant types are not supported yet!', self._debugger.get_last_log_categories())
 
         p = np.dstack([transformed_img[..., 3]]*3)
-        
-        overlay = (((1-ratio*p)*src_img[..., 0:3]+ratio*p*(transformed_img[..., 0:3])))
+
+        overlay = (
+            ((1-ratio*p)*src_img[..., 0:3]+ratio*p*(transformed_img[..., 0:3])))
         self._debugger.save_image(
             overlay, 'overlay', self._debugger.get_last_log_categories())
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
         self.set_image(overlay)
         return self
+
+    def __save_plot(object, desc, debugger: Debugger):
+        if type(object) is ImageLand:
+            debugger.save_image(object._flow_data, desc, Debugger.LogTypes.IMAGE,
+                                categories=debugger.get_last_log_categories())
+        elif type(object) is MarksLand:
+            debugger.save_image(object._flow_data, desc, Debugger.LogTypes.SCATTER,
+                                categories=debugger.get_last_log_categories())
+        elif type(object) is HeatLand:
+            debugger.save_image(object._flow_data, desc, Debugger.LogTypes.HEAT,
+                                categories=debugger.get_last_log_categories())
+
+    @Debugger.method_decorator('Adding an image to another object (image or heat or marks)', ['ImageLand.__add', 'ImageLand'])
+    def __add(self, object2, reverse_order=False):
+        object1_c = self.copy()
+        object2_c = object2.copy(save_trace=False)
+
+        if type(object2) is ImageLand:
+            if object1_c._flow_data.shape != object2_c._flow_data.shape:
+                self._debugger.log_warning("The images weren\'t in the same size so the second image is going to reshape!",
+                                           self._debugger.get_last_log_categories())
+                object2_c.reshape(object1_c._flow_data.shape[:2])
+                if object1_c.mode == 'RGB':
+                    object2_c = object2_c.to_rgb(copy_trace=False)
+                else:
+                    object2_c = object2_c.to_rgba(copy_trace=False)
+
+            object1_c._set_data(((object1_c._flow_data.astype(
+                'uint16')+object2_c._flow_data.astype('uint16'))/2).astype('uint8'))
+
+        elif type(object2) is MarksLand:
+            dot_radius = 20
+            for pos in object2._flow_data:
+                min_row = int(
+                    max(0, pos[0]*object1_c._flow_data.shape[0] - dot_radius))
+                max_row = int(
+                    min(object1_c._flow_data.shape[0], pos[0]*object1_c._flow_data.shape[0] + dot_radius))
+                min_col = int(
+                    max(0, pos[1]*object1_c._flow_data.shape[1] - dot_radius))
+                max_col = int(
+                    min(object1_c._flow_data.shape[1], pos[1]*object1_c._flow_data.shape[1] + dot_radius))
+                rr, cc = np.ogrid[min_row:max_row, min_col:max_col]
+                mask = (rr - pos[0]*object1_c._flow_data.shape[0])**2 + \
+                    (cc - pos[1]*object1_c._flow_data.shape[1]
+                     )**2 <= dot_radius**2
+                object1_c._flow_data[min_row:max_row, min_col:max_col][mask] = np.array([
+                    255, 0, 0])
+
+        if type(object2) is HeatLand:
+            if object2_c._flow_data.shape != object1_c._flow_data.shape[:2]:
+                self._debugger.log_warning("Heat and Image weren\'t in the same size so heat is going to reshape!",
+                                           self._debugger.get_last_log_categories())
+                object2_c = object2_c.reshape(object1_c._flow_data.shape[:2])
+
+            object1_c._flow_data = Filter((255, 165, 0), 0.5, self._debugger).apply_function(
+                object1_c._flow_data, np.dstack([object2_c._flow_data]*3)).astype('uint8')
+
+        return object1_c
+
+    @Debugger.method_decorator('Adding an image to another object (image or heat or marks)', ['ImageLand.__add__', 'ImageLand'])
+    def __add__(self, other):
+        ImageLand.__save_plot(
+            self, 'Left', self._debugger)
+        ImageLand.__save_plot(
+            other, 'Right', self._debugger)
+
+        result = self.__add(other, reverse_order=False)
+
+        ImageLand.__save_plot(result, 'Result', self._debugger)
+        self._debugger.log_saved_images(
+            categories=self._debugger.get_last_log_categories())
+        return result
+
+    @Debugger.method_decorator('Adding an image to another object (image or heat or marks)', ['ImageLand.__radd__', 'ImageLand'])
+    def __radd__(self, other):
+        ImageLand.__save_plot(
+            other, 'Left', self._debugger)
+        ImageLand.__save_plot(
+            self, 'Right', self._debugger)
+
+        result = other.__add(self, reverse_order=True)
+
+        ImageLand.__save_plot(result, 'Result', self._debugger)
+        self._debugger.log_saved_images(
+            categories=self._debugger.get_last_log_categories())
+        return result

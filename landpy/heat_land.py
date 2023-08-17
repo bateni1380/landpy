@@ -20,8 +20,8 @@ class HeatLand(Land):
             self._debugger.log_exception(
                 'heat must be a 2darray!', self._debugger.get_last_log_categories())
 
-        self._debugger.log_heat(
-            heat, 'Set Heat', categories=self._debugger.get_last_log_categories())
+        self._debugger.log_image(heat, 'Set Heat', Debugger.LogTypes.HEAT,
+                                 categories=self._debugger.get_last_log_categories())
 
         super()._set_data(heat)
 
@@ -29,26 +29,60 @@ class HeatLand(Land):
 
     @Debugger.method_decorator('Showing the heat', ['HeatLand.show', 'HeatLand'])
     def show(self):
-        Debugger(visual_debug=True).log_heat(self._flow_data)
+        Debugger(visual_debug=True).log_image(
+            self._flow_data, '', Debugger.LogTypes.HEAT)
 
     @Debugger.method_decorator('Adding two heats (maximums in each place)', ['HeatLand.__add__', 'HeatLand'])
     def __add__(self, other):
         if not isinstance(other, HeatLand):
             self._debugger.log_exception("Unsupported operand type for *: {} and MyClass".format(
                 type(other)), self._debugger.get_last_log_categories())
-        return HeatLand(np.maximum(self._flow_data, other._flow_data), self._debugger)
+        self._debugger.save_image(self._flow_data, 'Left', Debugger.LogTypes.HEAT,
+                                  categories=self._debugger.get_last_log_categories())
+        self._debugger.save_image(other._flow_data, 'Right', Debugger.LogTypes.HEAT,
+                                  categories=self._debugger.get_last_log_categories())
+
+        result = HeatLand(np.maximum(
+            self._flow_data, other._flow_data), self._debugger)
+
+        self._debugger.save_image(result._flow_data, 'Result', Debugger.LogTypes.HEAT,
+                                  categories=self._debugger.get_last_log_categories())
+        self._debugger.log_saved_images(
+            categories=self._debugger.get_last_log_categories())
+        return result
 
     @Debugger.method_decorator('Substracting two heats (minimums in each place)', ['HeatLand.__sub__', 'HeatLand'])
     def __sub__(self, other):
         if not isinstance(other, HeatLand):
             self._debugger.log_exception("Unsupported operand type for *: {} and MyClass".format(
                 type(other)), self._debugger.get_last_log_categories())
-        return HeatLand(np.minimum(self._flow_data, other._flow_data), self._debugger)
-    
+        self._debugger.save_image(self._flow_data, 'Left', Debugger.LogTypes.HEAT,
+                                  categories=self._debugger.get_last_log_categories())
+        self._debugger.save_image(other._flow_data, 'Right', Debugger.LogTypes.HEAT,
+                                  categories=self._debugger.get_last_log_categories())
+
+        result = HeatLand(np.minimum(
+            self._flow_data, other._flow_data), self._debugger)
+
+        self._debugger.save_image(result._flow_data, 'Result', Debugger.LogTypes.HEAT,
+                                  categories=self._debugger.get_last_log_categories())
+        self._debugger.log_saved_images(
+            categories=self._debugger.get_last_log_categories())
+        return result
+
     @Debugger.method_decorator('Negating a heat (p -> 1-p)', ['HeatLand.__neg__', 'HeatLand'])
     def __neg__(self):
-        return HeatLand(1-self._flow_data, self._debugger)
-    
+        self._debugger.save_image(self._flow_data, 'Before', Debugger.LogTypes.HEAT,
+                                  categories=self._debugger.get_last_log_categories())
+
+        result = HeatLand(1-self._flow_data, self._debugger)
+
+        self._debugger.save_image(result._flow_data, 'After', Debugger.LogTypes.HEAT,
+                                  categories=self._debugger.get_last_log_categories())
+        self._debugger.log_saved_images(
+            categories=self._debugger.get_last_log_categories())
+        return result
+
     @Debugger.method_decorator('Multiplying a number to a heats', ['HeatLand.__rmul__', 'HeatLand'])
     def __rmul__(self, other):
         if not isinstance(other, int) and not isinstance(other, float):
@@ -77,18 +111,18 @@ class HeatLand(Land):
         rotation_matrix = cv2.getRotationMatrix2D(
             center=center, angle=angle, scale=1)
 
-        self._debugger.save_heat(
-            self._flow_data, 'Heat before rotation', categories=self._debugger.get_last_log_categories())
+        self._debugger.save_image(
+            self._flow_data, 'Heat before rotation', Debugger.LogTypes.HEAT, categories=self._debugger.get_last_log_categories())
         self._flow_data = cv2.warpAffine(src=self._flow_data, M=rotation_matrix, dsize=(
             width, height), borderMode=cv2.BORDER_CONSTANT, borderValue=fill_color)
-        self._debugger.save_heat(
-            self._flow_data, 'Heat after rotation', categories=self._debugger.get_last_log_categories())
+        self._debugger.save_image(
+            self._flow_data, 'Heat after rotation', Debugger.LogTypes.HEAT, categories=self._debugger.get_last_log_categories())
 
         if save_trace:
             self._make_trace(HeatLand.__rotate_back, {
                              'angle': angle, 'center': center})
 
-        self._debugger.log_saved_heats(
+        self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
 
         return self
@@ -102,14 +136,14 @@ class HeatLand(Land):
         rotation_matrix = cv2.getRotationMatrix2D(
             center=pars['center'], angle=-pars['angle'], scale=1)
 
-        debugger.save_heat(
-            image, 'Heat before rotation back', categories=debugger.get_last_log_categories())
+        debugger.save_image(
+            image, 'Heat before rotation back', Debugger.LogTypes.HEAT, categories=debugger.get_last_log_categories())
         image = cv2.warpAffine(src=image, M=rotation_matrix, dsize=(
             width, height), borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
-        debugger.save_heat(
-            image, 'Heat after rotation back', categories=debugger.get_last_log_categories())
+        debugger.save_image(
+            image, 'Heat after rotation back', Debugger.LogTypes.HEAT, categories=debugger.get_last_log_categories())
 
-        debugger.log_saved_heats(
+        debugger.log_saved_images(
             categories=debugger.get_last_log_categories())
 
         return heat
@@ -126,15 +160,15 @@ class HeatLand(Land):
             self._make_trace(HeatLand.__reshape_back, {'width': heat.width,
                                                        'height': heat.height})
 
-        self._debugger.save_heat(
-            self._flow_data, 'Heat before reshape', categories=self._debugger.get_last_log_categories())
+        self._debugger.save_image(
+            self._flow_data, 'Heat before reshape', Debugger.LogTypes.HEAT, categories=self._debugger.get_last_log_categories())
         heat = heat.resize((width, height))
         heat = np.array(heat, dtype='float32')/255
         self.set_heat(heat)
-        self._debugger.save_heat(
-            self._flow_data, 'Heat after reshape', categories=self._debugger.get_last_log_categories())
+        self._debugger.save_image(
+            self._flow_data, 'Heat after reshape', Debugger.LogTypes.HEAT, categories=self._debugger.get_last_log_categories())
 
-        self._debugger.log_saved_heats(
+        self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
 
         return self
@@ -144,15 +178,15 @@ class HeatLand(Land):
         debugger.log('(w, h) = ({}, {})'.format(
             pars['width'], pars['height']), categories=debugger.get_last_log_categories())
 
-        debugger.save_heat(heat, 'Heat before reshape',
-                           categories=debugger.get_last_log_categories())
+        debugger.save_image(heat, 'Heat before reshape', Debugger.LogTypes.HEAT,
+                            categories=debugger.get_last_log_categories())
         heat = Image.fromarray((heat*255).astype('uint8'))
         heat = heat.resize((pars['width'], pars['height']))
         heat = np.array(heat, dtype='float32')/255
-        debugger.save_heat(heat, 'Heat after reshape',
-                           categories=debugger.get_last_log_categories())
+        debugger.save_image(heat, 'Heat after reshape', Debugger.LogTypes.HEAT,
+                            categories=debugger.get_last_log_categories())
 
-        debugger.log_saved_heats(
+        debugger.log_saved_images(
             categories=debugger.get_last_log_categories())
 
         return heat
@@ -163,8 +197,8 @@ class HeatLand(Land):
             self._make_trace(HeatLand.__zoom_back, {'last_heat': self._flow_data.copy(),
                                                     'quadrilateral': quadrilateral.copy()})
 
-        self._debugger.save_heat(self._flow_data, 'Heat before zoom',
-                                 categories=self._debugger.get_last_log_categories())
+        self._debugger.save_image(self._flow_data, 'Heat before zoom', Debugger.LogTypes.HEAT,
+                                  categories=self._debugger.get_last_log_categories())
 
         if type(quadrilateral) is SquareMarks:
             minX = math.floor(quadrilateral.minX * self._flow_data.shape[0])
@@ -194,10 +228,10 @@ class HeatLand(Land):
             self._debugger.log_exception(
                 "Zooming in image using QuadMarks is not supported yet!", self._debugger.get_last_log_categories())
 
-        self._debugger.save_heat(self._flow_data, 'Image after zoom',
-                                 categories=self._debugger.get_last_log_categories())
+        self._debugger.save_image(self._flow_data, 'Image after zoom', Debugger.LogTypes.HEAT,
+                                  categories=self._debugger.get_last_log_categories())
 
-        self._debugger.log_saved_heats(
+        self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
 
         return self
@@ -207,8 +241,8 @@ class HeatLand(Land):
         last_heat = pars['last_heat']
         quadrilateral = pars['quadrilateral']
 
-        debugger.save_heat(heat, 'Heat before zoom back',
-                           categories=debugger.get_last_log_categories())
+        debugger.save_image(heat, 'Heat before zoom back', Debugger.LogTypes.HEAT,
+                            categories=debugger.get_last_log_categories())
         if type(quadrilateral) is SquareMarks:
             minX = math.floor(quadrilateral.minX * last_heat.shape[0])
             maxX = math.ceil(quadrilateral.maxX * last_heat.shape[0])
@@ -225,10 +259,10 @@ class HeatLand(Land):
             debugger.log_exception(
                 "Zooming back in heat using QuadMarks is not supported yet!", debugger.get_last_log_categories())
 
-        debugger.save_heat(pars['last_heat'], 'Heat after zoom back',
-                           categories=debugger.get_last_log_categories())
+        debugger.save_image(pars['last_heat'], 'Heat after zoom back', Debugger.LogTypes.HEAT,
+                            categories=debugger.get_last_log_categories())
 
-        debugger.log_saved_heats(
+        debugger.log_saved_images(
             categories=debugger.get_last_log_categories())
 
         return last_heat

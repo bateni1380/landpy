@@ -2,7 +2,7 @@ from landpy import Debugger
 import numpy as np
 
 class Filter:
-    def __init__(self, color=(255,255,255), debugger=Debugger(debug=False)):
+    def __init__(self, color=(255,255,255), ratio=1, debugger=Debugger(debug=False)):
         self._debugger = debugger
 
         if type(color) is str:
@@ -10,7 +10,7 @@ class Filter:
         else:
             self.color = np.array(color, dtype=float)
 
-        self.set_function(lambda c, h: (c*(1-h))+(color*h))
+        self.set_function(lambda c, h: (c*(1-h*ratio))+(self.color*h*ratio))
 
     def set_function(self, f):
         self.apply_function = f 
