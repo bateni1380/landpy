@@ -6,5 +6,3 @@ from landpy.square_marks import SquareMarks
 from landpy.filter import Filter
 from landpy.heat_land import HeatLand
 from landpy.image_land import ImageLand
-
-# TODO: zoom and zoom back using QuadMarks in ImageLand and HeatLand and MarksLand

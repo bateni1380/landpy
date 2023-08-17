@@ -232,5 +232,3 @@ class HeatLand(Land):
             categories=debugger.get_last_log_categories())
 
         return last_heat
-
-# TODO : adopting operators (minus or ~)
