@@ -221,4 +221,3 @@ class MarksLand(Land):
                                                        self._flow_data[:, 1]),
                                                    maxY=np.max(self._flow_data[:, 1]))
         return sm
-#TODO : reshape in marksland

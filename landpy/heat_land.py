@@ -44,7 +44,11 @@ class HeatLand(Land):
             self._debugger.log_exception("Unsupported operand type for *: {} and MyClass".format(
                 type(other)), self._debugger.get_last_log_categories())
         return HeatLand(np.minimum(self._flow_data, other._flow_data), self._debugger)
-
+    
+    @Debugger.method_decorator('Negating a heat (p -> 1-p)', ['HeatLand.__neg__', 'HeatLand'])
+    def __neg__(self):
+        return HeatLand(1-self._flow_data, self._debugger)
+    
     @Debugger.method_decorator('Multiplying a number to a heats', ['HeatLand.__rmul__', 'HeatLand'])
     def __rmul__(self, other):
         if not isinstance(other, int) and not isinstance(other, float):
