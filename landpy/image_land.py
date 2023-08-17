@@ -14,7 +14,10 @@ from PIL import Image
 class ImageLand(Land):
     def __init__(self, image=None, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
-        if image is not None:
+        if type(image) is str:
+            image = np.array(Image.open(image))
+            ImageLand.set_image(self, image)
+        elif image is not None:
             ImageLand.set_image(self, image)
 
     @Debugger.method_decorator('Setting image', ['ImageLand.set_data', 'ImageLand'])

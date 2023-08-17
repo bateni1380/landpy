@@ -57,7 +57,7 @@ class Debugger:
         self.__images_to_show = []
         self.__scatters_to_show = []
         self.__heats_to_show = []
-        self.__last_log_categories = []
+        self.__last_log_categories = [[]]
         self.__set_frame()
         self.__log_start('Debugger init', ['Debugger.__init__', 'Debugger'])
 
@@ -422,7 +422,6 @@ class Debugger:
                     debugger = func_args[-1]
                 else:
                     raise Exception('static_method_decorator expects a debugger object as last parameter.')
-
                 debugger.append_last_log_categories(log_categories)
                 debugger.log_start(desc, categories=debugger.get_last_log_categories())
                 result = func(**bound_args.arguments)
