@@ -29,8 +29,37 @@ class ImageLand(Land):
             image = (image*255)
 
         super()._set_data(image.astype('uint8'))
-
+        if self._flow_data.shape[2] == 3:
+            self.mode = 'RGB'
+        else:
+            self.mode = 'RGBA'
         return self
+
+    @Debugger.method_decorator('Calling convertor.rgb_to_rgba from to_rgba method (if its an rgb image)', ['ImageLand.to_rgba', 'ImageLand'])
+    def to_rgba(self, copy_trace=True):
+        copied_self = self.copy(copy_trace)
+        if self.mode == 'RGBA':
+            self._debugger.log('Its already an rgba image!',
+                               self._debugger.get_last_log_categories())
+            return copied_self
+
+        copied_self._flow_data = np.dstack((copied_self._flow_data, np.ones(
+            (copied_self._flow_data.shape[0], copied_self._flow_data.shape[1]))*255))
+        copied_self.mode = 'RGBA'
+        return copied_self
+
+    @Debugger.method_decorator('Calling convertor.rgba_to_rgb from to_rgb method (if its an rgba image)', ['ImageLand.to_rgb', 'ImageLand'])
+    def to_rgb(self, copy_trace=True):
+        copied_self = self.copy(copy_trace)
+        if self.mode == 'RGB':
+            self._debugger.log('Its already an rgb image!',
+                               self._debugger.get_last_log_categories())
+            return copied_self
+
+        copied_self._flow_data = np.dstack((copied_self._flow_data[..., 0]*copied_self._flow_data[..., 3], copied_self._flow_data[..., 1]
+                                            * copied_self._flow_data[..., 3], copied_self._flow_data[..., 2]*copied_self._flow_data[..., 3]))
+        copied_self.mode = 'RGB'
+        return copied_self
 
     @Debugger.method_decorator('Returning image!', ['ImageLand.get_image', 'ImageLand'])
     def get_image(self):
@@ -263,7 +292,6 @@ class ImageLand(Land):
 
         return back_image
 
-    # TODO 1: Implant Filter
     @Debugger.method_decorator('implanting filter in image', ['ImageLand.implant_filter', 'ImageLand'])
     def implant_filter(self, filter: Filter, heat: HeatLand = None):
         if heat is None:
@@ -272,7 +300,8 @@ class ImageLand(Land):
         if heat._flow_data.shape != self._flow_data.shape[:2]:
             self._debugger.log_warning("Heat and Image weren\'t in the same size so heat is going to reshape!",
                                        self._debugger.get_last_log_categories())
-            heat = heat.reshape(self._flow_data.shape[:2])
+            heat = heat.copy(save_trace=False).reshape(
+                self._flow_data.shape[:2])
 
         self._debugger.save_image(self._flow_data, 'Image before implant',
                                   categories=self._debugger.get_last_log_categories())
@@ -286,11 +315,40 @@ class ImageLand(Land):
         self._debugger.log_saved_images(
             categories=self._debugger.get_last_log_categories())
 
-        heat.retrace()
-
         return self
 
-    # TODO: Implant Image
+    @Debugger.method_decorator('implanting image in image', ['ImageLand.implant_image', 'ImageLand'])
+    def implant_image(self, plant_img: np.ndarray, src_land: SquareMarks = SquareMarks(), plant_land: SquareMarks = SquareMarks(), ratio=0.5):
+        if self.mode == 'RGBA':
+            self = self.to_rgb()
+        if plant_img.shape[2] == 3:
+            plant_img = ImageLand(plant_img).to_rgba()._flow_data
+        src_img = np.array(self._flow_data/255, dtype=float)
+        plant_img = plant_img/255
 
-    def implant_image(self, src_land: MarksLand, plant_land: MarksLand, plant_img: np.ndarray):
-        pass  # challenge
+        if type(src_land) is SquareMarks and type(plant_land) is SquareMarks:
+            dst_pts = src_land._flow_data * \
+                np.array([src_img.shape[0],
+                         src_img.shape[1]], dtype=float)
+            src_pts = plant_land._flow_data * \
+                np.array([plant_img.shape[0], plant_img.shape[1]], dtype=float)
+            src_pts, dst_pts = np.floor(src_pts, dtype=np.float32), np.floor(dst_pts, dtype=np.float32)
+            M = cv2.getPerspectiveTransform(src_pts, dst_pts)
+            transformed_img = cv2.warpPerspective(
+                plant_img, M, (src_img.shape[1], src_img.shape[0]))
+            
+            self._debugger.save_image(
+                transformed_img, 'transformed image', self._debugger.get_last_log_categories())
+        else:
+            self._debugger.log_exception(
+                'other implant types are not supported yet!', self._debugger.get_last_log_categories())
+
+        p = np.dstack([transformed_img[..., 3]]*3)
+        
+        overlay = (((1-ratio*p)*src_img[..., 0:3]+ratio*p*(transformed_img[..., 0:3])))
+        self._debugger.save_image(
+            overlay, 'overlay', self._debugger.get_last_log_categories())
+        self._debugger.log_saved_images(
+            categories=self._debugger.get_last_log_categories())
+        self.set_image(overlay)
+        return self

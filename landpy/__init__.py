@@ -1,10 +1,10 @@
 from landpy.debugger import Debugger
 from landpy.land import Land
-from landpy.marksLand import MarksLand
-from landpy.quadMarks import QuadMarks
-from landpy.squareMarks import SquareMarks
+from landpy.marks_land import MarksLand
+from landpy.quad_marks import QuadMarks
+from landpy.square_marks import SquareMarks
 from landpy.filter import Filter
-from landpy.heatLand import HeatLand
-from landpy.imageLand import ImageLand
+from landpy.heat_land import HeatLand
+from landpy.image_land import ImageLand
 
 # TODO: zoom and zoom back using QuadMarks in ImageLand and HeatLand and MarksLand

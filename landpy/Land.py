@@ -32,10 +32,11 @@ class Land:
         return self._flow_data
 
     @Debugger.method_decorator('Copying Land', ['Land.copy', 'Land'])
-    def copy(self):
+    def copy(self, save_trace=True):
         dir = self.__copy_trace()
         copied_land = type(self)(debugger=self._debugger)
-        copied_land.__trace = dir['trace']
+        if save_trace:
+            copied_land.__trace = dir['trace']
         copied_land._flow_data = dir['flow_data']
         return copied_land
 
@@ -54,17 +55,18 @@ class Land:
         self._flow_data = inv_fun(self._flow_data, pars, self._debugger)
 
     @Debugger.method_decorator('Copying the whole trace', ['Land.__copy_trace', 'Land'])
-    def __copy_trace(self):
+    def __copy_trace(self, copy_trace=True):
         copied_trace = []
-        for item in self.__trace:
-            copied_pars = {}
-            for key in item['pars']:
-                if hasattr(item['pars'][key], 'copy'):
-                    copied_pars.update({key: item['pars'][key].copy()})
-                else:
-                    copied_pars.update({key: item['pars'][key]})
-            copied_trace.append(
-                {'inv_fun': item['inv_fun'], 'pars': copied_pars})
+        if copy_trace:
+            for item in self.__trace:
+                copied_pars = {}
+                for key in item['pars']:
+                    if hasattr(item['pars'][key], 'copy'):
+                        copied_pars.update({key: item['pars'][key].copy()})
+                    else:
+                        copied_pars.update({key: item['pars'][key]})
+                copied_trace.append(
+                    {'inv_fun': item['inv_fun'], 'pars': copied_pars})
 
         flow_data = self._flow_data.copy() if hasattr(
             self._flow_data, 'copy') else self._flow_data

@@ -9,9 +9,11 @@ import cv2
 
 class MarksLand(Land):
     def __init__(self, x=None, y=None, debugger: Debugger = Debugger(debug=False)):
-        super().__init__(debugger)
+        super().__init__(debugger=debugger)
         if x is not None:
             MarksLand.set_marks(self, x, y)
+        else:
+            MarksLand.set_marks(self, [0], [0])
 
     @Debugger.method_decorator('Setting marks', ['MarksLand.set_marks', 'MarksLand'])
     def set_marks(self, x, y=None):
@@ -53,17 +55,6 @@ class MarksLand(Land):
     @Debugger.method_decorator('Getting marks!', ['MarksLand.get_marks', 'MarksLand'])
     def get_marks(self):
         super()._get_data()
-
-    @Debugger.method_decorator('Converting MarksLand to SquareMarks', ['MarksLand.to_square', 'MarksLand'])
-    def to_square(self):
-        from landpy import SquareMarks
-        sm = SquareMarks(self._debugger).set_marks(minX=np.min(self._flow_data[:, 0]),
-                                                   maxX=np.max(
-                                                       self._flow_data[:, 0]),
-                                                   minY=np.min(
-                                                       self._flow_data[:, 1]),
-                                                   maxY=np.max(self._flow_data[:, 1]))
-        return sm
 
     @Debugger.method_decorator('Showing marks', ['MarksLand.show', 'MarksLand'])
     def show(self):
@@ -220,4 +211,14 @@ class MarksLand(Land):
         heat = HeatLand(heat_p, self._debugger)
         return heat
 
+    @Debugger.method_decorator('Converting MarksLand to SquareMarks', ['MarksLand.to_square', 'MarksLand'])
+    def to_square(self):
+        from landpy import SquareMarks
+        sm = SquareMarks(self._debugger).set_marks(minX=np.min(self._flow_data[:, 0]),
+                                                   maxX=np.max(
+                                                       self._flow_data[:, 0]),
+                                                   minY=np.min(
+                                                       self._flow_data[:, 1]),
+                                                   maxY=np.max(self._flow_data[:, 1]))
+        return sm
 #TODO : reshape in marksland
