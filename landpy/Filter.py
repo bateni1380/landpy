@@ -2,7 +2,7 @@ from landpy import Debugger
 import numpy as np
 
 class Filter:
-    def __init__(self, color=(255,255,255), contrast=1, debugger=Debugger(debug=False)):
+    def __init__(self, color=(255,255,255), debugger=Debugger(debug=False)):
         self._debugger = debugger
 
         if type(color) is str:
