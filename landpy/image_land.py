@@ -187,10 +187,10 @@ class ImageLand(Land):
                                   categories=self._debugger.get_last_log_categories())
 
         if type(quadrilateral) is SquareMarks:
-            minX = math.floor(quadrilateral.minX * self._flow_data.shape[0])
-            maxX = math.ceil(quadrilateral.maxX * self._flow_data.shape[0])
-            minY = math.floor(quadrilateral.minY * self._flow_data.shape[1])
-            maxY = math.ceil(quadrilateral.maxY * self._flow_data.shape[1])
+            minX = math.floor(quadrilateral.minX() * self._flow_data.shape[0])
+            maxX = math.ceil(quadrilateral.maxX() * self._flow_data.shape[0])
+            minY = math.floor(quadrilateral.minY() * self._flow_data.shape[1])
+            maxY = math.ceil(quadrilateral.maxY() * self._flow_data.shape[1])
             if minX >= 0 and maxX <= self._flow_data.shape[0] and minY >= 0 and maxY <= self._flow_data.shape[1]:
                 self._flow_data = self._flow_data[minX:maxX, minY:maxY]
             else:
@@ -230,10 +230,10 @@ class ImageLand(Land):
         debugger.save_image(image, 'Image before zoom back',
                             categories=debugger.get_last_log_categories())
         if type(quadrilateral) is SquareMarks:
-            minX = math.floor(quadrilateral.minX * last_image.shape[0])
-            maxX = math.ceil(quadrilateral.maxX * last_image.shape[0])
-            minY = math.floor(quadrilateral.minY * last_image.shape[1])
-            maxY = math.ceil(quadrilateral.maxY * last_image.shape[1])
+            minX = math.floor(quadrilateral.minX() * last_image.shape[0])
+            maxX = math.ceil(quadrilateral.maxX() * last_image.shape[0])
+            minY = math.floor(quadrilateral.minY() * last_image.shape[1])
+            maxY = math.ceil(quadrilateral.maxY() * last_image.shape[1])
 
             x_len = min(maxX, last_image.shape[0])-max(0, minX)
             y_len = min(maxY, last_image.shape[1])-max(0, minY)
@@ -375,7 +375,7 @@ class ImageLand(Land):
         if type(object) is ImageLand:
             debugger.save_image(object._flow_data, desc, Debugger.LogTypes.IMAGE,
                                 categories=debugger.get_last_log_categories())
-        elif type(object) is MarksLand:
+        elif type(object) is MarksLand or type(object) is SquareMarks or type(object) is QuadMarks:
             debugger.save_image(object._flow_data, desc, Debugger.LogTypes.SCATTER,
                                 categories=debugger.get_last_log_categories())
         elif type(object) is HeatLand:
@@ -397,14 +397,13 @@ class ImageLand(Land):
                 else:
                     object2_c = object2_c.to_rgba(copy_trace=False)
 
-            object1_c._set_data(((object1_c._flow_data.astype(
-                'uint16')+object2_c._flow_data.astype('uint16'))/2).astype('uint8'))
+            object1_c._flow_data = ((object1_c._flow_data.astype(
+                'uint16')+object2_c._flow_data.astype('uint16'))/2).astype('uint8')
 
         elif type(object2) is MarksLand or type(object2) is SquareMarks or type(object2) is QuadMarks:
             dot_radius = int(
                 min(self._flow_data.shape[0], self._flow_data.shape[1])*0.02)
             for pos in object2_c._flow_data:
-                pos = pos[::-1]
                 min_row = int(
                     max(0, pos[0]*object1_c._flow_data.shape[0] - dot_radius))
                 max_row = int(
@@ -421,31 +420,29 @@ class ImageLand(Land):
             line_width = max(int(
                 min(self._flow_data.shape[0], self._flow_data.shape[1])*0.007 ),1)
             if type(object2) is SquareMarks:
-                l1_height = slice(max(int(object2.minX*object1_c._flow_data.shape[0]-line_width), 0),
-                                 min(int(object2.minX*object1_c._flow_data.shape[0]+line_width), object1_c._flow_data.shape[0]))
-                l1_width = slice(int(object2.minY*object1_c._flow_data.shape[1]),
-                                  int(object2.maxY*object1_c._flow_data.shape[1]))
-                l2_height = slice(max(int(object2.maxX*object1_c._flow_data.shape[0]-line_width), 0),
-                                 min(int(object2.maxX*object1_c._flow_data.shape[0]+line_width), object1_c._flow_data.shape[0]))
-                l2_width = slice(int(object2.minY*object1_c._flow_data.shape[1]),
-                                  int(object2.maxY*object1_c._flow_data.shape[1]))
-                l3_height = slice(int(object2.minX*object1_c._flow_data.shape[0]),
-                                 int(object2.maxX*object1_c._flow_data.shape[0]))
-                l3_width = slice(max(int(object2.minY*object1_c._flow_data.shape[1]-line_width), 0),
-                                  min(int(object2.minY*object1_c._flow_data.shape[1]+line_width), object1_c._flow_data.shape[1]))
-                l4_height = slice(int(object2.minX*object1_c._flow_data.shape[0]),
-                                 int(object2.maxX*object1_c._flow_data.shape[0]))
-                l4_width = slice(max(int(object2.maxY*object1_c._flow_data.shape[1]-line_width), 0),
-                                  min(int(object2.maxY*object1_c._flow_data.shape[1]+line_width), object1_c._flow_data.shape[1]))
-                print(l1_width, l1_height)
-                object1_c._flow_data[l1_width,
-                                     l1_height] = np.array([255, 255, 0])
-                object1_c._flow_data[l2_width,
-                                     l2_height] = np.array([255, 255, 0])
-                object1_c._flow_data[l3_width,
-                                     l3_height] = np.array([255, 255, 0])
-                object1_c._flow_data[l4_width,
-                                     l4_height] = np.array([255, 255, 0])
+                l1_width = slice(max(int(object2.minX()*object1_c._flow_data.shape[0]-line_width), 0),
+                                 min(int(object2.minX()*object1_c._flow_data.shape[0]+line_width), object1_c._flow_data.shape[0]))
+                l1_height = slice(int(object2.minY()*object1_c._flow_data.shape[1]),
+                                  int(object2.maxY()*object1_c._flow_data.shape[1]))
+                
+                l2_width = slice(max(int(object2.maxX()*object1_c._flow_data.shape[0]-line_width), 0),
+                                 min(int(object2.maxX()*object1_c._flow_data.shape[0]+line_width), object1_c._flow_data.shape[0]))
+                l2_height = slice(int(object2.minY()*object1_c._flow_data.shape[1]),
+                                  int(object2.maxY()*object1_c._flow_data.shape[1]))
+                
+                l3_width = slice(int(object2.minX()*object1_c._flow_data.shape[0]),
+                                 int(object2.maxX()*object1_c._flow_data.shape[0]))
+                l3_height = slice(max(int(object2.minY()*object1_c._flow_data.shape[1]-line_width), 0),
+                                  min(int(object2.minY()*object1_c._flow_data.shape[1]+line_width), object1_c._flow_data.shape[1]))
+                
+                l4_width = slice(int(object2.minX()*object1_c._flow_data.shape[0]),
+                                 int(object2.maxX()*object1_c._flow_data.shape[0]))
+                l4_height = slice(max(int(object2.maxY()*object1_c._flow_data.shape[1]-line_width), 0),
+                                  min(int(object2.maxY()*object1_c._flow_data.shape[1]+line_width), object1_c._flow_data.shape[1]))
+                object1_c._flow_data[l1_width, l1_height] = np.array([255, 255, 0])
+                object1_c._flow_data[l2_width, l2_height] = np.array([255, 255, 0])
+                object1_c._flow_data[l3_width, l3_height] = np.array([255, 255, 0])
+                object1_c._flow_data[l4_width, l4_height] = np.array([255, 255, 0])
 
         if type(object2) is HeatLand:
             if object2_c._flow_data.shape != object1_c._flow_data.shape[:2]:
@@ -464,7 +461,7 @@ class ImageLand(Land):
             self, 'Left', self._debugger)
         ImageLand.__save_plot(
             other, 'Right', self._debugger)
-
+        
         result = self.__add(other, reverse_order=False)
 
         ImageLand.__save_plot(result, 'Result', self._debugger)

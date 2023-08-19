@@ -6,9 +6,6 @@ class QuadMarks(MarksLand):
         super().__init__(debugger=debugger)
         if x1 is not None and x2 is not None and x3 is not None and x4 is not None:
             QuadMarks.set_marks(self, x1, x2, x3, x4)
-        else:
-            QuadMarks.set_marks(self, [0,0], [0,0], [0,0], [0,0])
-
 
     @Debugger.method_decorator('Setting QuadMarks', ['QuadMarks.__init__', 'QuadMarks'])
     def set_marks(self, x1, x2, x3, x4):

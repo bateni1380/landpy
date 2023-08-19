@@ -12,8 +12,6 @@ class MarksLand(Land):
         super().__init__(debugger=debugger)
         if x is not None:
             MarksLand.set_marks(self, x, y)
-        else:
-            MarksLand.set_marks(self, [0], [0])
 
     @Debugger.method_decorator('Setting marks', ['MarksLand.set_marks', 'MarksLand'])
     def set_marks(self, x, y=None):
@@ -128,9 +126,9 @@ class MarksLand(Land):
             self._flow_data, 'Marks before zoom!', Debugger.LogTypes.SCATTER, categories=self._debugger.get_last_log_categories())
         if type(quadrilateral) is SquareMarks:
             self._flow_data[:, 0] = (
-                self._flow_data[:, 0]-quadrilateral.minX)/(quadrilateral.maxX-quadrilateral.minX)
+                self._flow_data[:, 0]-quadrilateral.minX())/(quadrilateral.maxX()-quadrilateral.minX())
             self._flow_data[:, 1] = (
-                self._flow_data[:, 1]-quadrilateral.minY)/(quadrilateral.maxX-quadrilateral.minY)
+                self._flow_data[:, 1]-quadrilateral.minY())/(quadrilateral.maxY()-quadrilateral.minY())
         elif type(quadrilateral) is QuadMarks:
             self._debugger.log_exception(
                 "Zooming in MarksLand using QuadMarks is not supported yet!", self._debugger.get_last_log_categories())
@@ -150,9 +148,9 @@ class MarksLand(Land):
             marksland, 'Marks before zoom back!', Debugger.LogTypes.SCATTER, categories=debugger.get_last_log_categories())
         if type(quadrilateral) is SquareMarks:
             marksland[:, 0] = (
-                marksland[:, 0]*(quadrilateral.maxX-quadrilateral.minX))+quadrilateral.minX
+                marksland[:, 0]*(quadrilateral.maxX()-quadrilateral.minX()))+quadrilateral.minX()
             marksland[:, 1] = (
-                marksland[:, 1]*(quadrilateral.maxY-quadrilateral.minY))+quadrilateral.minY
+                marksland[:, 1]*(quadrilateral.maxY()-quadrilateral.minY()))+quadrilateral.minY()
         elif type(quadrilateral) is QuadMarks:
             debugger.log_exception(
                 "Zooming back in MarksLand using QuadMarks is not supported yet!", debugger.get_last_log_categories())

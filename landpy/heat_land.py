@@ -201,10 +201,10 @@ class HeatLand(Land):
                                   categories=self._debugger.get_last_log_categories())
 
         if type(quadrilateral) is SquareMarks:
-            minX = math.floor(quadrilateral.minX * self._flow_data.shape[0])
-            maxX = math.ceil(quadrilateral.maxX * self._flow_data.shape[0])
-            minY = math.floor(quadrilateral.minY * self._flow_data.shape[1])
-            maxY = math.ceil(quadrilateral.maxY * self._flow_data.shape[1])
+            minX = math.floor(quadrilateral.minX() * self._flow_data.shape[0])
+            maxX = math.ceil(quadrilateral.maxX() * self._flow_data.shape[0])
+            minY = math.floor(quadrilateral.minY() * self._flow_data.shape[1])
+            maxY = math.ceil(quadrilateral.maxY() * self._flow_data.shape[1])
             if minX >= 0 and maxX <= self._flow_data.shape[0] and minY >= 0 and maxY <= self._flow_data.shape[1]:
                 self._flow_data = self._flow_data[minX:maxX, minY:maxY]
             else:
@@ -244,10 +244,10 @@ class HeatLand(Land):
         debugger.save_image(heat, 'Heat before zoom back', Debugger.LogTypes.HEAT,
                             categories=debugger.get_last_log_categories())
         if type(quadrilateral) is SquareMarks:
-            minX = math.floor(quadrilateral.minX * last_heat.shape[0])
-            maxX = math.ceil(quadrilateral.maxX * last_heat.shape[0])
-            minY = math.floor(quadrilateral.minY * last_heat.shape[1])
-            maxY = math.ceil(quadrilateral.maxY * last_heat.shape[1])
+            minX = math.floor(quadrilateral.minX() * last_heat.shape[0])
+            maxX = math.ceil(quadrilateral.maxX() * last_heat.shape[0])
+            minY = math.floor(quadrilateral.minY() * last_heat.shape[1])
+            maxY = math.ceil(quadrilateral.maxY() * last_heat.shape[1])
 
             x_len = min(maxX, last_heat.shape[0])-max(0, minX)
             y_len = min(maxY, last_heat.shape[1])-max(0, minY)

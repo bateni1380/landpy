@@ -34,9 +34,10 @@ class Land:
     @Debugger.method_decorator('Copying Land', ['Land.copy', 'Land'])
     def copy(self, save_trace=True):
         dir = self.__copy_trace()
-        copied_land = type(self)(debugger=self._debugger)
+        copied_land = type(self)()
         if save_trace:
             copied_land.__trace = dir['trace']
+            copied_land._debugger = self._debugger
         copied_land._flow_data = dir['flow_data']
         return copied_land
 

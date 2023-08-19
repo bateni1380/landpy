@@ -1,5 +1,5 @@
 from landpy import Debugger, QuadMarks, MarksLand
-
+import numpy as np
 
 class SquareMarks(QuadMarks):
     def __init__(self, minX=None, maxX=None, minY=None, maxY=None, debugger: Debugger = Debugger(debug=False)):
@@ -24,10 +24,17 @@ class SquareMarks(QuadMarks):
         x = [minX, minX, maxX, maxX]
         y = [minY, maxY, maxY, minY]
         MarksLand.set_marks(self, x, y)
-        self.minX, self.maxX = self._flow_data[0, 0], self._flow_data[2, 0]
-        self.minY, self.maxY = self._flow_data[0, 1], self._flow_data[1, 1]
         return self
-
+    
+    def minX(self):
+        return np.min(self._flow_data[:,0])
+    def maxX(self):
+        return np.max(self._flow_data[:,0])
+    def minY(self):
+        return np.min(self._flow_data[:,1])
+    def maxY(self):
+        return np.max(self._flow_data[:,1])
+    
     @Debugger.method_decorator('Copying SquareMarks', ['SquareMarks.copy', 'SquareMarks'])
     def copy(self, save_trace=True):
         copied_land = super().copy(save_trace=save_trace)

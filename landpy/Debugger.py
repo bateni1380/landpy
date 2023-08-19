@@ -179,7 +179,7 @@ class Debugger:
                         plt.gca().invert_yaxis()
                     plt.gca().add_patch(rect)
                     plt.gca().set_aspect('equal')
-                    plt.scatter(images[i][:, 0], images[i][:, 1])
+                    plt.scatter(images[i][:, 1], images[i][:, 0])
                     plt.axis('equal')
                 elif types[i] == Debugger.LogTypes.HEAT:
                     im = plt.imshow(images[i], cmap='YlOrRd', vmin=0.0, vmax=1.0)
