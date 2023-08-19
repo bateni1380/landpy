@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.colors as mcolors
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 class Debugger:
     '''
@@ -177,15 +178,20 @@ class Debugger:
                     if not plt.gca().yaxis_inverted():
                         plt.gca().invert_yaxis()
                     plt.gca().add_patch(rect)
+                    plt.gca().set_aspect('equal')
                     plt.scatter(images[i][:, 0], images[i][:, 1])
                     plt.axis('equal')
                 elif types[i] == Debugger.LogTypes.HEAT:
-                    plt.imshow(images[i], cmap='YlOrRd', vmin=0.0, vmax=1.0)
-                    plt.colorbar()
+                    im = plt.imshow(images[i], cmap='YlOrRd', vmin=0.0, vmax=1.0)
+                    if descs[i] is not None and len(descs[i]) > 0 and types[i]:
+                        plt.title(descs[i])
+                    divider = make_axes_locatable(plt.gca())
+                    cax = divider.append_axes("right", size="5%", pad=0.05)  # Adjust size and pad as needed
+                    cbar = plt.colorbar(im, cax=cax)
 
-                if descs[i] is not None and len(descs[i]) > 0:
+                if descs[i] is not None and len(descs[i]) > 0 and types[i] != Debugger.LogTypes.HEAT:
                     plt.title(descs[i])
-
+            plt.subplots_adjust(wspace=0.7)
             plt.show()
 
     def log_image(self, image: np.ndarray, desc: str = "", type = 0, categories: Iterable[str] = []):

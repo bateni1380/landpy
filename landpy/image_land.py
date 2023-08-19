@@ -400,9 +400,11 @@ class ImageLand(Land):
             object1_c._set_data(((object1_c._flow_data.astype(
                 'uint16')+object2_c._flow_data.astype('uint16'))/2).astype('uint8'))
 
-        elif type(object2) is MarksLand:
-            dot_radius = 20
-            for pos in object2._flow_data:
+        elif type(object2) is MarksLand or type(object2) is SquareMarks or type(object2) is QuadMarks:
+            dot_radius = int(
+                min(self._flow_data.shape[0], self._flow_data.shape[1])*0.02)
+            for pos in object2_c._flow_data:
+                pos = pos[::-1]
                 min_row = int(
                     max(0, pos[0]*object1_c._flow_data.shape[0] - dot_radius))
                 max_row = int(
@@ -412,11 +414,38 @@ class ImageLand(Land):
                 max_col = int(
                     min(object1_c._flow_data.shape[1], pos[1]*object1_c._flow_data.shape[1] + dot_radius))
                 rr, cc = np.ogrid[min_row:max_row, min_col:max_col]
-                mask = (rr - pos[0]*object1_c._flow_data.shape[0])**2 + \
-                    (cc - pos[1]*object1_c._flow_data.shape[1]
-                     )**2 <= dot_radius**2
+                mask = (rr - pos[0]*object1_c._flow_data.shape[0])**2 + (cc - pos[1]*object1_c._flow_data.shape[1]
+                                                                         )**2 <= dot_radius**2
                 object1_c._flow_data[min_row:max_row, min_col:max_col][mask] = np.array([
                     255, 0, 0])
+            line_width = max(int(
+                min(self._flow_data.shape[0], self._flow_data.shape[1])*0.007 ),1)
+            if type(object2) is SquareMarks:
+                l1_height = slice(max(int(object2.minX*object1_c._flow_data.shape[0]-line_width), 0),
+                                 min(int(object2.minX*object1_c._flow_data.shape[0]+line_width), object1_c._flow_data.shape[0]))
+                l1_width = slice(int(object2.minY*object1_c._flow_data.shape[1]),
+                                  int(object2.maxY*object1_c._flow_data.shape[1]))
+                l2_height = slice(max(int(object2.maxX*object1_c._flow_data.shape[0]-line_width), 0),
+                                 min(int(object2.maxX*object1_c._flow_data.shape[0]+line_width), object1_c._flow_data.shape[0]))
+                l2_width = slice(int(object2.minY*object1_c._flow_data.shape[1]),
+                                  int(object2.maxY*object1_c._flow_data.shape[1]))
+                l3_height = slice(int(object2.minX*object1_c._flow_data.shape[0]),
+                                 int(object2.maxX*object1_c._flow_data.shape[0]))
+                l3_width = slice(max(int(object2.minY*object1_c._flow_data.shape[1]-line_width), 0),
+                                  min(int(object2.minY*object1_c._flow_data.shape[1]+line_width), object1_c._flow_data.shape[1]))
+                l4_height = slice(int(object2.minX*object1_c._flow_data.shape[0]),
+                                 int(object2.maxX*object1_c._flow_data.shape[0]))
+                l4_width = slice(max(int(object2.maxY*object1_c._flow_data.shape[1]-line_width), 0),
+                                  min(int(object2.maxY*object1_c._flow_data.shape[1]+line_width), object1_c._flow_data.shape[1]))
+                print(l1_width, l1_height)
+                object1_c._flow_data[l1_width,
+                                     l1_height] = np.array([255, 255, 0])
+                object1_c._flow_data[l2_width,
+                                     l2_height] = np.array([255, 255, 0])
+                object1_c._flow_data[l3_width,
+                                     l3_height] = np.array([255, 255, 0])
+                object1_c._flow_data[l4_width,
+                                     l4_height] = np.array([255, 255, 0])
 
         if type(object2) is HeatLand:
             if object2_c._flow_data.shape != object1_c._flow_data.shape[:2]:

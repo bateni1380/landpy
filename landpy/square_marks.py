@@ -29,8 +29,8 @@ class SquareMarks(QuadMarks):
         return self
 
     @Debugger.method_decorator('Copying SquareMarks', ['SquareMarks.copy', 'SquareMarks'])
-    def copy(self):
-        copied_land = super().copy()
+    def copy(self, save_trace=True):
+        copied_land = super().copy(save_trace=save_trace)
         copied_land.minX = self.minX
         copied_land.maxX = self.maxX
         copied_land.minY = self.minY

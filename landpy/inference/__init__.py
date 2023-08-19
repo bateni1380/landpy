@@ -32,7 +32,9 @@ def inference_by_tflite(interpreter, input_image, input_type, debugger: Debugger
     
     interpreter.set_tensor(input_details[0]['index'], input)
     interpreter.invoke()
-    output_data = interpreter.get_tensor(output_details[0]['index'])
+    output_data = [interpreter.get_tensor(output_details[i]['index']) for i in range(len(output_details))]
+    if len(output_data)==1:
+        output_data = output_data[0]
 
     return output_data
 
