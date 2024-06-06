@@ -1,6 +1,7 @@
 from landpy import Debugger, QuadMarks, MarksLand
 import numpy as np
 
+
 class SquareMarks(QuadMarks):
     def __init__(self, minX=None, maxX=None, minY=None, maxY=None, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger=debugger)
@@ -25,16 +26,33 @@ class SquareMarks(QuadMarks):
         y = [minY, maxY, maxY, minY]
         MarksLand.set_marks(self, x, y)
         return self
-    
+
     def minX(self):
-        return np.min(self._flow_data[:,0])
+        return np.min(self._flow_data[:, 0])
+
     def maxX(self):
-        return np.max(self._flow_data[:,0])
+        return np.max(self._flow_data[:, 0])
+
     def minY(self):
-        return np.min(self._flow_data[:,1])
+        return np.min(self._flow_data[:, 1])
+
     def maxY(self):
-        return np.max(self._flow_data[:,1])
-    
+        return np.max(self._flow_data[:, 1])
+
+    def area(self):
+        return (self.maxX()-self.minX())*(self.maxY()-self.minY())
+
+    def subscription(self, other):
+        inter_minX = max(self.minX(), other.minX())
+        inter_maxX = min(self.maxX(), other.maxX())
+        inter_minY = max(self.minY(), other.minY())
+        inter_maxY = min(self.maxY(), other.maxY())
+
+        if inter_minX < inter_maxX and inter_minY < inter_maxY:
+            return SquareMarks(inter_minX, inter_maxX, inter_minY, inter_maxY)
+        else:
+            return None
+
     @Debugger.method_decorator('Copying SquareMarks', ['SquareMarks.copy', 'SquareMarks'])
     def copy(self, save_trace=True):
         copied_land = super().copy(save_trace=save_trace)

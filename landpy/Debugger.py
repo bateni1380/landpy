@@ -7,6 +7,7 @@ import matplotlib.patches as patches
 import matplotlib.colors as mcolors
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+
 class Debugger:
     '''
         This class is a class to observe status of the code. 
@@ -73,18 +74,18 @@ class Debugger:
         if not self.__dubug:
             return
         self.__last_log_categories.append(last_log_categories.copy())
-        
+
     def get_last_log_categories(self):
         if not self.__dubug:
             return []
         return self.__last_log_categories[-1]
-    
+
     def pop_last_log_categories(self):
         if not self.__dubug:
             return
         self.__last_log_categories.pop()
 
-    def log(self, desc: str, categories: Iterable[str] = []):
+    def log(self, desc: str, categories: Iterable[str] = None):
         '''
             You can use this function to log an event in console.
             You just have two parameters here. desc is the description
@@ -104,7 +105,7 @@ class Debugger:
             self.__print(desc, self.__get_line_info(),
                          Debugger.__get_time_info(time.time()-last_time))
 
-    def log_start(self, desc: str, categories: Iterable[str] = []):
+    def log_start(self, desc: str, categories: Iterable[str] = None):
         '''
             This funtion is like a simple log but here, you are specifying that
                 some process has been started. Then you see passed time of all logs after 
@@ -119,7 +120,7 @@ class Debugger:
         self.__set_frame()
         self.__log_start(desc, categories)
 
-    def log_end(self, categories: Iterable[str] = []):
+    def log_end(self, categories: Iterable[str] = None):
         '''
             This funtion is like a simple log but here, you are specifying that
                 last process has been ended. We don't have any description as 
@@ -132,23 +133,27 @@ class Debugger:
         self.__set_frame()
         self.__log_end(categories)
 
-    def log_exception(self, desc: str, categories: Iterable[str] = []):
+    def log_exception(self, desc: str, categories: Iterable[str] = None):
         print('\033[91', end='')
+        if categories is None:
+            categories=self.get_last_log_categories()
         self.log(desc, ["Exception"]+categories)
         print('\033[0m', end='')
         raise Exception(desc)
-    
-    def log_warning(self, desc: str, categories: Iterable[str] = []):
+
+    def log_warning(self, desc: str, categories: Iterable[str] = None):
         print('\033[93m', end='')
+        if categories is None:
+            categories=self.get_last_log_categories()
         self.log(desc, ["Warning"]+categories)
         print('\033[0m', end='')
-    
+
     class LogTypes:
         IMAGE = 0
         HEAT = 1
         SCATTER = 2
 
-    def log_images(self, images, descs: List[str], types, dim: Tuple = None, categories: Iterable[str] = []):
+    def log_images(self, images, descs: List[str], types, dim: Tuple = None, categories: Iterable[str] = None):
         '''
             This funtion is like a simple log but here, you feed some pictures as
                 a list of np arrays.
@@ -174,7 +179,7 @@ class Debugger:
                     plt.axis('image')
                 elif types[i] == Debugger.LogTypes.SCATTER:
                     rect = patches.Rectangle(
-                    (0, 0), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
+                        (0, 0), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
                     if not plt.gca().yaxis_inverted():
                         plt.gca().invert_yaxis()
                     plt.gca().add_patch(rect)
@@ -182,11 +187,13 @@ class Debugger:
                     plt.scatter(images[i][:, 1], images[i][:, 0])
                     plt.axis('equal')
                 elif types[i] == Debugger.LogTypes.HEAT:
-                    im = plt.imshow(images[i], cmap='YlOrRd', vmin=0.0, vmax=1.0)
+                    im = plt.imshow(
+                        images[i], cmap='YlOrRd', vmin=0.0, vmax=1.0)
                     if descs[i] is not None and len(descs[i]) > 0 and types[i]:
                         plt.title(descs[i])
                     divider = make_axes_locatable(plt.gca())
-                    cax = divider.append_axes("right", size="5%", pad=0.05)  # Adjust size and pad as needed
+                    # Adjust size and pad as needed
+                    cax = divider.append_axes("right", size="5%", pad=0.05)
                     cbar = plt.colorbar(im, cax=cax)
 
                 if descs[i] is not None and len(descs[i]) > 0 and types[i] != Debugger.LogTypes.HEAT:
@@ -194,7 +201,7 @@ class Debugger:
             plt.subplots_adjust(wspace=0.7)
             plt.show()
 
-    def log_image(self, image: np.ndarray, desc: str = "", type = 0, categories: Iterable[str] = []):
+    def log_image(self, image: np.ndarray, desc: str = "", type=0, categories: Iterable[str] = None):
         '''
             This funtion is like a simple log but here, you show some picture too.
             - desc is the title of the image.
@@ -207,15 +214,16 @@ class Debugger:
         if self.__visual_debug and self.__is_in_categories(categories):
             self.log_images([image], [desc], [type], None, categories)
 
-    def save_image(self, image: np.ndarray, desc: str = "", type = 0, categories: Iterable[str] = []):
+    def save_image(self, image: np.ndarray, desc: str = "", type=0, categories: Iterable[str] = None):
         if not self.__dubug:
             return
 
         if self.__visual_debug and self.__is_in_categories(categories):
             self.log(desc+' saved!', categories)
-            self.__images_to_show.append({'desc': desc, 'image': image.copy(), 'type': int(type)})
+            self.__images_to_show.append(
+                {'desc': desc, 'image': image.copy(), 'type': int(type)})
 
-    def log_saved_images(self, dim: Tuple = None, categories: Iterable[str] = []):
+    def log_saved_images(self, dim: Tuple = None, categories: Iterable[str] = None):
         if not self.__dubug:
             return
 
@@ -237,7 +245,9 @@ class Debugger:
                 inspect.currentframe())[2].frame
 
     def __is_in_categories(self, categories: Iterable):
-        if categories is None or len(categories) == 0 or self.__categories is None or len(self.__categories) == 0:
+        if categories is None:
+            return self.__is_in_categories(self.get_last_log_categories())
+        elif len(categories) == 0 or self.__categories is None or len(self.__categories) == 0:
             return True
         elif len(set(categories).intersection(set(self.__categories))) > 0:
             return True
@@ -266,17 +276,18 @@ class Debugger:
         tabs = self.__start_tabs*'\t'
         print(tabs + line_info + ' ' + desc + ' ' + time_info)
 
-    def __log_start(self, desc: str, categories: Iterable[str] = []):
+    def __log_start(self, desc: str, categories: Iterable[str] = None):
         self.__time_stack.append((desc, time.time()))
         if self.__textual_debug and self.__is_in_categories(categories):
             self.__print(desc + ' started', self.__get_line_info())
             self.__start_tabs += 1
 
-    def __log_end(self, categories: Iterable[str] = []):
+    def __log_end(self, categories: Iterable[str] = None):
         last_desc, last_time = self.__time_stack.pop()
         if self.__textual_debug and self.__is_in_categories(categories):
             if self.__start_tabs == 0:
-                raise Exception('There is no proccess to end it ' + self.__get_line_info())
+                raise Exception(
+                    'There is no proccess to end it ' + self.__get_line_info())
             self.__start_tabs -= 1
             self.__print(last_desc + ' ended', self.__get_line_info(),
                          Debugger.__get_time_info(time.time()-last_time))
@@ -289,7 +300,7 @@ class Debugger:
             if param_name not in bound_args.arguments and param.default is not inspect.Parameter.empty:
                 bound_args.arguments[param_name] = param.default
         return bound_args
-    
+
     def __modify_static_method_args(func, func_args, func_kargs):
         # Get the original function's signature and bind any default values
         sig = inspect.signature(func)
@@ -298,27 +309,30 @@ class Debugger:
             if param_name not in bound_args.arguments and param.default is not inspect.Parameter.empty:
                 bound_args.arguments[param_name] = param.default
         return bound_args
-                
+
     def method_decorator(desc: str, log_categories: List):
         def dec_wrapper(func):
             def func_wrapper(self, *func_args, **func_kargs):
-                bound_args = Debugger.__modify_method_args(func, self, func_args, func_kargs)
+                bound_args = Debugger.__modify_method_args(
+                    func, self, func_args, func_kargs)
 
                 self._debugger.append_last_log_categories(log_categories)
-                self._debugger.log_start(desc, categories=self._debugger.get_last_log_categories())
+                self._debugger.log_start(
+                    desc, categories=self._debugger.get_last_log_categories())
                 result = func(**bound_args.arguments)
-                self._debugger.log_end(categories=self._debugger.get_last_log_categories())
+                self._debugger.log_end(
+                    categories=self._debugger.get_last_log_categories())
                 self._debugger.pop_last_log_categories()
 
                 return result
             return func_wrapper
         return dec_wrapper
 
-    
     def static_method_decorator(desc: str, log_categories: List):
         def dec_wrapper(func):
             def func_wrapper(*func_args, **func_kargs):
-                bound_args =Debugger.__modify_static_method_args(func, func_args, func_kargs)
+                bound_args = Debugger.__modify_static_method_args(
+                    func, func_args, func_kargs)
 
                 debugger = None
                 if 'debugger' in func_kargs:
@@ -326,9 +340,11 @@ class Debugger:
                 elif type(func_args[-1]) is Debugger:
                     debugger = func_args[-1]
                 else:
-                    raise Exception('static_method_decorator expects a debugger object as last parameter.')
+                    raise Exception(
+                        'static_method_decorator expects a debugger object as last parameter.')
                 debugger.append_last_log_categories(log_categories)
-                debugger.log_start(desc, categories=debugger.get_last_log_categories())
+                debugger.log_start(
+                    desc, categories=debugger.get_last_log_categories())
                 result = func(**bound_args.arguments)
                 debugger.log_end(categories=debugger.get_last_log_categories())
                 debugger.pop_last_log_categories()
@@ -336,4 +352,3 @@ class Debugger:
                 return result
             return func_wrapper
         return dec_wrapper
-    
