@@ -372,7 +372,7 @@ class ImageLand(Land):
     ADDED_LINES_WIDTH = 1
     ADDED_LINES_COLOR = (255,255,0)
     ADDED_VECTORS_WIDTH = 1
-    ADDED_VECTORS_COLOR = 1
+    ADDED_VECTORS_COLOR = (255,255,255)
     @Debugger.method_decorator('Adding an image to another object (image or heat or marks)', ['ImageLand.__add', 'ImageLand'])
     def __add(self, object2):
         object1_c = self.copy(copy_trace=True)
