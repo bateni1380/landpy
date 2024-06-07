@@ -1,7 +1,7 @@
 from typing import Callable, List, Tuple, Dict, Literal, Any, Iterable, Union
 import time
 from landpy import Debugger, Land
-from landpy import MarksLand, QuadMarks, SquareMarks, HeatLand, Filter
+from landpy import MarksLand, QuadMarks, SquareMarks, DualMarks, HeatLand, Filter
 from landpy.heat import zero_heat, full_heat
 import numpy as np
 import cv2
@@ -39,34 +39,32 @@ class ImageLand(Land):
         return self
 
     @Debugger.method_decorator('Copying image', ['ImageLand.copy', 'ImageLand'])
-    def copy(self, save_trace=True):
-        copied_self = Land.copy(self, save_trace)
+    def copy(self, copy_trace=False):
+        copied_self = Land.copy(self, copy_trace)
         copied_self.mode = self.mode
         return copied_self
 
     @Debugger.method_decorator('Changing mode to rgba', ['ImageLand.to_rgba', 'ImageLand'])
-    def to_rgba(self, copy_trace=True):
-        copied_self = self.copy(copy_trace)
+    def to_rgba(self):
         if self.mode == 'RGBA':
-            self._debugger.log('Its already an rgba image!')
-            return copied_self
+            self._debugger.log_warning('Its already an rgba image!')
+            return self
 
-        copied_self._flow_data = np.dstack((copied_self._flow_data, np.ones(
-            (copied_self._flow_data.shape[0], copied_self._flow_data.shape[1]))*255))
-        copied_self.mode = 'RGBA'
-        return copied_self
+        self._flow_data = np.dstack((self._flow_data, np.ones(
+            (self._flow_data.shape[0], self._flow_data.shape[1]))*255))
+        self.mode = 'RGBA'
+        return self
 
     @Debugger.method_decorator('Changing mode to rgb', ['ImageLand.to_rgb', 'ImageLand'])
-    def to_rgb(self, copy_trace=True):
-        copied_self = self.copy(copy_trace)
+    def to_rgb(self):
         if self.mode == 'RGB':
-            self._debugger.log('Its already an rgb image!')
-            return copied_self
+            self._debugger.log_warning('Its already an rgb image!')
+            return self
 
-        copied_self._flow_data = np.dstack((copied_self._flow_data[..., 0]*copied_self._flow_data[..., 3], copied_self._flow_data[..., 1]
-                                            * copied_self._flow_data[..., 3], copied_self._flow_data[..., 2]*copied_self._flow_data[..., 3]))
-        copied_self.mode = 'RGB'
-        return copied_self
+        self._flow_data = np.dstack((self._flow_data[..., 0]*self._flow_data[..., 3], self._flow_data[..., 1]
+                                     * self._flow_data[..., 3], self._flow_data[..., 2]*self._flow_data[..., 3]))
+        self.mode = 'RGB'
+        return self
 
     @Debugger.method_decorator('Returning image!', ['ImageLand.get_image', 'ImageLand'])
     def get_image(self):
@@ -77,7 +75,7 @@ class ImageLand(Land):
         Debugger(visual_debug=True).log_image(self._flow_data, desc=desc)
 
     @Debugger.method_decorator('Rotating image', ['ImageLand.rotate', 'ImageLand'])
-    def rotate(self, angle: float, center: Tuple = None, save_trace: bool = True, fill_color=(0, 0, 0)):
+    def rotate(self, angle: float, center: Tuple = None, save_trace=False, fill_color=(0, 0, 0)):
         height, width = self._flow_data.shape[:2]
         if center == None:
             center = (int(width/2), int(height/2))
@@ -126,7 +124,7 @@ class ImageLand(Land):
         return image
 
     @Debugger.method_decorator('Reshaping image', ['ImageLand.reshape', 'ImageLand'])
-    def reshape(self, shape, mode='RGB', save_trace: bool = True):
+    def reshape(self, shape, mode='RGB', save_trace=False):
         width, height = shape[1], shape[0]
         self._debugger.log('(w, h, mode) = ({}, {}, {})'.format(
             width, height, mode), )
@@ -172,14 +170,13 @@ class ImageLand(Land):
         return image
 
     @Debugger.method_decorator('Zooming in image', ['ImageLand.zoom', 'ImageLand'])
-    def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks, float], save_trace: bool = True, fill_color=(0, 0, 0)):
-        if type(quadrilateral) is float or type(quadrilateral) is int:
-            t = float(quadrilateral)
-            quadrilateral = SquareMarks(t, 1-t, t, 1-t)
+    def zoom(self, quadrilateral=None, zoom_factor=None, center=None, save_trace=False, fill_color=(0, 0, 0)):
+        if quadrilateral is None:
+            quadrilateral = SquareMarks(zoom_factor=zoom_factor, center=center)
 
         if save_trace:
             self._make_trace(ImageLand.__zoom_back, {'last_image': self._flow_data.copy(),
-                                                     'quadrilateral': quadrilateral.copy(save_trace=False)})
+                                                     'quadrilateral': quadrilateral.copy(copy_trace=False)})
 
         self._debugger.save_image(self._flow_data, 'Image before zoom',
                                   )
@@ -255,7 +252,7 @@ class ImageLand(Land):
         return last_image
 
     @Debugger.method_decorator('Applying histogram equalization method on the image', ['ImageLand.histogram_equalization', 'ImageLand'])
-    def equalize_histogram(self, save_trace: bool = True):
+    def equalize_histogram(self, save_trace=False):
         lab_image = cv2.cvtColor(self._flow_data, cv2.COLOR_RGB2Lab)
         l_channel, a_channel, b_channel = cv2.split(lab_image)
 
@@ -306,7 +303,7 @@ class ImageLand(Land):
         if heat._flow_data.shape != self._flow_data.shape[:2]:
             self._debugger.log_warning(
                 "Heat and Image weren\'t in the same size so heat is going to reshape!")
-            heat = heat.copy(save_trace=False).reshape(
+            heat = heat.copy(copy_trace=False).reshape(
                 self._flow_data.shape[:2])
 
         self._flow_data = filter.apply_function(
@@ -370,69 +367,50 @@ class ImageLand(Land):
             debugger.save_image(object._flow_data, desc,
                                 Debugger.LogTypes.HEAT)
 
+    ADDED_POINTS_RADIOUS = 2
+    ADDED_POINTS_COLOR = (255, 0, 0)
+    ADDED_LINES_WIDTH = 1
+    ADDED_LINES_COLOR = (255,255,0)
+    ADDED_VECTORS_WIDTH = 1
+    ADDED_VECTORS_COLOR = 1
     @Debugger.method_decorator('Adding an image to another object (image or heat or marks)', ['ImageLand.__add', 'ImageLand'])
     def __add(self, object2):
-        object1_c = self.copy()
-        object2_c = object2.copy(save_trace=False)
-
+        object1_c = self.copy(copy_trace=True)
+        object2_c = object2.copy(copy_trace=False)
+        print(object1_c._debugger, object2_c._debugger)
         if type(object2) is ImageLand:
             if object1_c._flow_data.shape != object2_c._flow_data.shape:
                 self._debugger.log_warning(
                     "The images weren\'t in the same size so the second image is going to reshape!")
                 object2_c.reshape(object1_c._flow_data.shape[:2])
                 if object1_c.mode == 'RGB':
-                    object2_c = object2_c.to_rgb(copy_trace=False)
+                    object2_c = object2_c.to_rgb(save_trace=False)
                 else:
-                    object2_c = object2_c.to_rgba(copy_trace=False)
+                    object2_c = object2_c.to_rgba(save_trace=False)
 
             object1_c._flow_data = ((object1_c._flow_data.astype(
                 'uint16')+object2_c._flow_data.astype('uint16'))/2).astype('uint8')
 
         elif type(object2) is MarksLand or type(object2) is SquareMarks or type(object2) is QuadMarks:
-            dot_radius = int(
-                min(self._flow_data.shape[0], self._flow_data.shape[1])*0.02)
+            dot_radius = int(min(
+                self._flow_data.shape[0], self._flow_data.shape[1])*ImageLand.ADDED_POINTS_RADIOUS*0.01)
             for pos in object2_c._flow_data:
-                min_row = int(
-                    max(0, pos[0]*object1_c._flow_data.shape[0] - dot_radius))
-                max_row = int(
-                    min(object1_c._flow_data.shape[0], pos[0]*object1_c._flow_data.shape[0] + dot_radius))
-                min_col = int(
-                    max(0, pos[1]*object1_c._flow_data.shape[1] - dot_radius))
-                max_col = int(
-                    min(object1_c._flow_data.shape[1], pos[1]*object1_c._flow_data.shape[1] + dot_radius))
-                rr, cc = np.ogrid[min_row:max_row, min_col:max_col]
-                mask = (rr - pos[0]*object1_c._flow_data.shape[0])**2 + (cc - pos[1]*object1_c._flow_data.shape[1]
-                                                                         )**2 <= dot_radius**2
-                object1_c._flow_data[min_row:max_row, min_col:max_col][mask] = np.array([
-                    255, 0, 0])
-            line_width = max(int(
-                min(self._flow_data.shape[0], self._flow_data.shape[1])*0.007), 1)
+                cv2.circle(object1_c._flow_data,
+                           (int(pos[0]*object1_c._flow_data.shape[0]), int(pos[1]*object1_c._flow_data.shape[1])), dot_radius, ImageLand.ADDED_POINTS_COLOR, -1)
+            line_width = max(int(min(self._flow_data.shape[0], self._flow_data.shape[1])*0.01*ImageLand.ADDED_LINES_WIDTH), 1)
             if type(object2) is SquareMarks:
-                lines = [[], [], [], []]
-                lines[0] = [(object2.minX()*object1_c._flow_data.shape[0]-line_width,
-                             object2.minX()*object1_c._flow_data.shape[0]+line_width),
-                            (object2.minY()*object1_c._flow_data.shape[1],
-                             object2.maxY()*object1_c._flow_data.shape[1])]
-                lines[1] = [(object2.maxX()*object1_c._flow_data.shape[0]-line_width,
-                             object2.maxX()*object1_c._flow_data.shape[0]+line_width),
-                            (object2.minY()*object1_c._flow_data.shape[1],
-                             object2.maxY()*object1_c._flow_data.shape[1])]
-                lines[2] = [(object2.minX()*object1_c._flow_data.shape[0],
-                             object2.maxX()*object1_c._flow_data.shape[0]),
-                            (object2.minY()*object1_c._flow_data.shape[1]-line_width,
-                             object2.minY()*object1_c._flow_data.shape[1]+line_width)]
-                lines[3] = [(object2.minX()*object1_c._flow_data.shape[0],
-                             object2.maxX()*object1_c._flow_data.shape[0]),
-                            (object2.maxY()*object1_c._flow_data.shape[1]-line_width,
-                             object2.maxY()*object1_c._flow_data.shape[1]+line_width)]
-                for line in lines:
-                    line[0] = slice(int(max(min(line[0][0], object1_c._flow_data.shape[0]-1), 0)),
-                                    int(max(min(line[0][1], object1_c._flow_data.shape[0]-1), 0)))
-                    line[1] = slice(int(max(min(line[1][0], object1_c._flow_data.shape[1]-1), 0)),
-                                    int(max(min(line[1][1], object1_c._flow_data.shape[1]-1), 0)))
-                    if line[0].stop-line[0].start > 0 and line[1].stop-line[1].start > 0:
-                        object1_c._flow_data[line[0],
-                                             line[1]] = np.array([255, 255, 0])
+                minX, maxX, minY, maxY = int(object2.minX()*object1_c._flow_data.shape[0]), int(object2.maxX()*object1_c._flow_data.shape[0]), int(object2.minY()*object1_c._flow_data.shape[1]), int(object2.maxY()*object1_c._flow_data.shape[1])
+                cv2.line(object1_c._flow_data, (minX, minY), (maxX, minY), ImageLand.ADDED_LINES_COLOR, line_width)
+                cv2.line(object1_c._flow_data, (minX, minY), (minX, maxY), ImageLand.ADDED_LINES_COLOR, line_width)
+                cv2.line(object1_c._flow_data, (maxX, maxY), (maxX, minY), ImageLand.ADDED_LINES_COLOR, line_width)
+                cv2.line(object1_c._flow_data, (maxX, maxY), (minX, maxY), ImageLand.ADDED_LINES_COLOR, line_width)
+
+        if type(object2) is DualMarks:
+            start_point = int(object2._flow_data[0][0]*object1_c._flow_data.shape[0]), int(object2._flow_data[0][1]*object1_c._flow_data.shape[1])
+            end_point = int(object2._flow_data[1][0]*object1_c._flow_data.shape[0]), int(object2._flow_data[1][1]*object1_c._flow_data.shape[1])
+            line_width = max(int(min(self._flow_data.shape[0], self._flow_data.shape[1])*0.01*ImageLand.ADDED_VECTORS_WIDTH), 1)
+            distance = np.sqrt((end_point[0] - start_point[0])**2 + (end_point[1] - start_point[1])**2)
+            cv2.arrowedLine(object1_c._flow_data, start_point, end_point, color=ImageLand.ADDED_VECTORS_COLOR, thickness=line_width, tipLength=float(distance)/2e4)
 
         if type(object2) is HeatLand:
             if object2_c._flow_data.shape != object1_c._flow_data.shape[:2]:

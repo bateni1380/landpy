@@ -32,17 +32,17 @@ class Land:
         return self._flow_data
 
     @Debugger.method_decorator('Copying Land', ['Land.copy', 'Land'])
-    def copy(self, save_trace=False):
-        if save_trace == False:
+    def copy(self, copy_trace=False):
+        if copy_trace == False:
             self._debugger.log_warning(
                 "save_trace is False so traces and checkpoints of this object won\'t be copied!")
         copied_land = type(self)()
-        if save_trace:
+        copied_land._debugger = self._debugger
+        if copy_trace:
             dir = Land.__copy_trace(
                 self.__trace, self._flow_data, debugger=self._debugger)
             copied_land.__trace = dir['trace']
             copied_land._flow_data = dir['flow_data']
-            copied_land._debugger = self._debugger
             
             for i in range(len(self.__checkpoint_history)):
                 dir = Land.__copy_trace(self.__checkpoint_history[i]['trace'],

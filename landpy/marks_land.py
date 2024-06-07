@@ -114,11 +114,15 @@ class MarksLand(Land):
         return rotated_points
 
     @Debugger.method_decorator('Zooming marks', ['MarksLand.zoom', 'MarksLand'])
-    def zoom(self, quadrilateral, save_trace: bool = True):
+    def zoom(self, quadrilateral=None, zoom_factor=None, center=None, save_trace: bool = True):
         from landpy import QuadMarks, SquareMarks
+        
+        if quadrilateral is None:
+            quadrilateral = SquareMarks(zoom_factor=zoom_factor, center=center)
+
         if save_trace:
             self._make_trace(MarksLand.__zoom_back, {
-                             'quadrilateral': quadrilateral.copy()})
+                             'quadrilateral': quadrilateral.copy(save_trace)})
 
         self._debugger.save_image(
             self._flow_data, 'Marks before zoom!', Debugger.LogTypes.SCATTER)
@@ -197,7 +201,11 @@ class MarksLand(Land):
             result._flow_data, 'Result', Debugger.LogTypes.SCATTER)
         self._debugger.log_saved_images()
         return result
-
+    
+    @Debugger.method_decorator('Getting indices of the object', ['MarksLand.__getitem__', 'MarksLand'])
+    def __getitem__(self, index):
+        return MarksLand(self._flow_data[index], debugger=self._debugger)
+    
     @Debugger.method_decorator('Converting marks object to a python list', ['MarksLand.to_list', 'MarksLand'])
     def to_list(self):
         return (self._flow_data).tolist()

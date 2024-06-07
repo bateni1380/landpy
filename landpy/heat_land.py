@@ -97,7 +97,7 @@ class HeatLand(Land):
         return HeatLand(np.maximum(np.minimum(self._flow_data**other, 1), 0), self._debugger)
 
     @Debugger.method_decorator('Rotating heat', ['HeatLand.rotate', 'HeatLand'])
-    def rotate(self, angle: float, center: Tuple = None, save_trace: bool = True, fill_color=0):
+    def rotate(self, angle: float, center: Tuple = None, save_trace = False, fill_color=0):
         height, width = self._flow_data.shape[:2]
         if center == None:
             center = (int(width/2), int(height/2))
@@ -145,7 +145,7 @@ class HeatLand(Land):
         return heat
 
     @Debugger.method_decorator('Reshaping heat', ['HeatLand.reshape', 'HeatLand'])
-    def reshape(self, shape, save_trace: bool = True):
+    def reshape(self, shape, save_trace = False):
         width, height = shape[1], shape[0]
         self._debugger.log('(w, h) = ({}, {})'.format(
             width, height), )
@@ -185,7 +185,7 @@ class HeatLand(Land):
         return heat
 
     @ Debugger.method_decorator('Zooming in heat', ['HeatLand.zoom', 'HeatLand'])
-    def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace: bool = True, fill_heat=0):
+    def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace = False, fill_heat=0):
         if save_trace:
             self._make_trace(HeatLand.__zoom_back, {'last_heat': self._flow_data.copy(),
                                                     'quadrilateral': quadrilateral.copy(save_trace=False)})

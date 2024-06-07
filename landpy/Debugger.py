@@ -57,8 +57,6 @@ class Debugger:
         self.__time_stack: List[Tuple[str, float]] = []
         self.__start_tabs: int = 0
         self.__images_to_show = []
-        self.__scatters_to_show = []
-        self.__heats_to_show = []
         self.__last_log_categories = [[]]
         self.__set_frame()
         self.__log_start('Debugger init', ['Debugger.__init__', 'Debugger'])
@@ -152,6 +150,7 @@ class Debugger:
         IMAGE = 0
         HEAT = 1
         SCATTER = 2
+        VECTOR = 3
 
     def log_images(self, images, descs: List[str], types, dim: Tuple = None, categories: Iterable[str] = None):
         '''
@@ -178,18 +177,30 @@ class Debugger:
                     plt.imshow(images[i])
                     plt.axis('image')
                 elif types[i] == Debugger.LogTypes.SCATTER:
-                    rect = patches.Rectangle(
-                        (0, 0), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
+                    rect = patches.Rectangle((0, 0), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
                     if not plt.gca().yaxis_inverted():
                         plt.gca().invert_yaxis()
                     plt.gca().add_patch(rect)
                     plt.gca().set_aspect('equal')
                     plt.scatter(images[i][:, 1], images[i][:, 0])
                     plt.axis('equal')
+                elif types[i] == Debugger.LogTypes.VECTOR:
+                    start_point = np.array(images[i][0])
+                    end_point = np.array(images[i][1])
+                    U = end_point[0] - start_point[0]
+                    V = end_point[1] - start_point[1]
+                    rect = patches.Rectangle((0, 0), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
+                    if not plt.gca().yaxis_inverted():
+                        plt.gca().invert_yaxis()
+                    plt.gca().add_patch(rect)
+                    plt.gca().set_aspect('equal')
+                    plt.scatter(images[i][:, 1], images[i][:, 0], s=0.1)
+                    plt.quiver(start_point[1], start_point[0], V, U, angles='xy', scale_units='xy', scale=1, color='gray', width=0.005)
+                    plt.axis('equal')
                 elif types[i] == Debugger.LogTypes.HEAT:
                     im = plt.imshow(
                         images[i], cmap='YlOrRd', vmin=0.0, vmax=1.0)
-                    if descs[i] is not None and len(descs[i]) > 0 and types[i]:
+                    if descs[i] is not None and len(descs[i]) > 0:
                         plt.title(descs[i])
                     divider = make_axes_locatable(plt.gca())
                     # Adjust size and pad as needed

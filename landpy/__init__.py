@@ -3,6 +3,7 @@ from landpy.land import Land
 from landpy.marks_land import MarksLand
 from landpy.quad_marks import QuadMarks
 from landpy.square_marks import SquareMarks
+from landpy.dual_marks import DualMarks
 from landpy.filter import Filter
 from landpy.heat_land import HeatLand
 from landpy.image_land import ImageLand
