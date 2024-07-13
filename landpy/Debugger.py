@@ -177,12 +177,12 @@ class Debugger:
                     plt.imshow(images[i])
                     plt.axis('image')
                 elif types[i] == Debugger.LogTypes.SCATTER:
-                    rect = patches.Rectangle((0, 0), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
+                    rect = patches.Rectangle((0, 0), images[i][1][1], images[i][1][0], linewidth=1, edgecolor='r', facecolor='none')
                     if not plt.gca().yaxis_inverted():
                         plt.gca().invert_yaxis()
                     plt.gca().add_patch(rect)
                     plt.gca().set_aspect('equal')
-                    plt.scatter(images[i][:, 1], images[i][:, 0])
+                    plt.scatter(images[i][0][:, 1], images[i][0][:, 0])
                     plt.axis('equal')
                 elif types[i] == Debugger.LogTypes.VECTOR:
                     start_point = np.array(images[i][0])

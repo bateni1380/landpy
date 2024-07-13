@@ -173,7 +173,7 @@ class ImageLand(Land):
     @Debugger.method_decorator('Zooming in image', ['ImageLand.zoom', 'ImageLand'])
     def zoom(self, quadrilateral=None, zoom_factor=None, center=None, save_trace=False, fill_color=(0, 0, 0)):
         if quadrilateral is None:
-            quadrilateral = SquareMarks(zoom_factor=zoom_factor, center=center)
+            quadrilateral = SquareMarks(shape=self._flow_data.shape[:2], zoom_factor=zoom_factor, center=center)
 
         if save_trace:
             self._make_trace(ImageLand.__zoom_back, {'last_image': self._flow_data.copy(),
@@ -183,10 +183,10 @@ class ImageLand(Land):
                                   )
 
         if type(quadrilateral) is SquareMarks:
-            minX = math.floor(quadrilateral.minX() * self._flow_data.shape[0])
-            maxX = math.ceil(quadrilateral.maxX() * self._flow_data.shape[0])
-            minY = math.floor(quadrilateral.minY() * self._flow_data.shape[1])
-            maxY = math.ceil(quadrilateral.maxY() * self._flow_data.shape[1])
+            minX = int(quadrilateral.minX())
+            maxX = int(quadrilateral.maxX())
+            minY = int(quadrilateral.minY())
+            maxY = int(quadrilateral.maxY())
             if minX >= 0 and maxX <= self._flow_data.shape[0] and minY >= 0 and maxY <= self._flow_data.shape[1]:
                 self._flow_data = self._flow_data[minX:maxX, minY:maxY]
             else:
@@ -224,10 +224,10 @@ class ImageLand(Land):
         debugger.save_image(image, 'Image before zoom back',
                             )
         if type(quadrilateral) is SquareMarks:
-            minX = math.floor(quadrilateral.minX() * last_image.shape[0])
-            maxX = math.ceil(quadrilateral.maxX() * last_image.shape[0])
-            minY = math.floor(quadrilateral.minY() * last_image.shape[1])
-            maxY = math.ceil(quadrilateral.maxY() * last_image.shape[1])
+            minX = quadrilateral.minX()
+            maxX = quadrilateral.maxX()
+            minY = quadrilateral.minY()
+            maxY = quadrilateral.maxY()
 
             x_len = min(maxX, last_image.shape[0])-max(0, minX)
             y_len = min(maxY, last_image.shape[1])-max(0, minY)
@@ -317,8 +317,14 @@ class ImageLand(Land):
         return self
 
     @Debugger.method_decorator('implanting image in image', ['ImageLand.implant_image', 'ImageLand'])
-    def implant_image(self, plant_img: np.ndarray, src_land: SquareMarks = SquareMarks(), plant_land: SquareMarks = SquareMarks(), ratio=0.5):
+    def implant_image(self, plant_img: np.ndarray, src_land: SquareMarks = None, plant_land: SquareMarks = None, ratio=0.5):
         ImageLand.__save_plot(self, 'base', self._debugger)
+        
+        if src_land is None:
+            src_land = SquareMarks(shape=self._flow_data.shape[:2])
+        if plant_land is None:
+            plant_land = SquareMarks(shape=plant_img.shape[:2])
+        
         self._debugger.save_image(
             plant_img, 'plant image')
 
@@ -330,14 +336,7 @@ class ImageLand(Land):
         plant_img = plant_img/255
 
         if type(src_land) is SquareMarks and type(plant_land) is SquareMarks:
-            dst_pts = src_land._flow_data * \
-                np.array([src_img.shape[0],
-                         src_img.shape[1]], dtype=float)
-            src_pts = plant_land._flow_data * \
-                np.array([plant_img.shape[0], plant_img.shape[1]], dtype=float)
-            src_pts, dst_pts = np.floor(src_pts, dtype=np.float32), np.floor(
-                dst_pts, dtype=np.float32)
-            M = cv2.getPerspectiveTransform(src_pts, dst_pts)
+            M = cv2.getPerspectiveTransform(plant_land._flow_data.astype(np.float32), src_land._flow_data.astype(np.float32))
             transformed_img = cv2.warpPerspective(
                 plant_img, M, (src_img.shape[1], src_img.shape[0]))
 
@@ -368,9 +367,9 @@ class ImageLand(Land):
             debugger.save_image(object._flow_data, desc,
                                 Debugger.LogTypes.HEAT)
 
-    ADDED_POINTS_RADIOUS = 2
+    ADDED_POINTS_RADIOUS = 1.5
     ADDED_POINTS_COLOR = (255, 0, 0)
-    ADDED_LINES_WIDTH = 1
+    ADDED_LINES_WIDTH = 2
     ADDED_LINES_COLOR = (255,255,0)
     ADDED_VECTORS_WIDTH = 1
     ADDED_VECTORS_COLOR = (255,255,255)
@@ -382,7 +381,7 @@ class ImageLand(Land):
             if object1_c._flow_data.shape != object2_c._flow_data.shape:
                 self._debugger.log_warning(
                     "The images weren\'t in the same size so the second image is going to reshape!")
-                object2_c.reshape(object1_c._flow_data.shape[:2])
+                object2_c.reshape(object1_c._flow_data)
                 if object1_c.mode == 'RGB':
                     object2_c = object2_c.to_rgb(save_trace=False)
                 else:
@@ -392,12 +391,16 @@ class ImageLand(Land):
                 'uint16')+object2_c._flow_data.astype('uint16'))/2).astype('uint8')
 
         elif isinstance(object2, MarksLand):
-            points = (object2._flow_data*np.array(object1_c._flow_data.shape[:2])).astype(int)[:,::-1]
-            dot_radius = int(min(
-                self._flow_data.shape[0], self._flow_data.shape[1])*ImageLand.ADDED_POINTS_RADIOUS*0.01)
+            if object2.shape() != object1_c._flow_data.shape and object2.shape() is not None:
+                self._debugger.log_warning(
+                    "The image and marksland weren\'t in the same size so the marksland is going to reshape!")
+                object2.reshape(object1_c._flow_data.shape[:2])
+                
+            points = object2._flow_data[0][:,::-1].astype(int)
+            dot_radius = int(min(self._flow_data.shape[0], self._flow_data.shape[1])*ImageLand.ADDED_POINTS_RADIOUS*0.01)
             for point in points:
                 cv2.circle(object1_c._flow_data, point.tolist(), dot_radius, ImageLand.ADDED_POINTS_COLOR, -1)
-            line_width = max(int(min(self._flow_data.shape[0], self._flow_data.shape[1])*0.01*ImageLand.ADDED_LINES_WIDTH), 1)
+            line_width = max(int(min(self._flow_data[0].shape[0], self._flow_data[0].shape[1])*ImageLand.ADDED_LINES_WIDTH), 1)
             if isinstance(object2, SquareMarks):
                 #minX, maxX, minY, maxY = int(object2.minX()*object1_c._flow_data.shape[0]), int(object2.maxX()*object1_c._flow_data.shape[0]), int(object2.minY()*object1_c._flow_data.shape[1]), int(object2.maxY()*object1_c._flow_data.shape[1])
                 cv2.line(object1_c._flow_data, points[0].tolist(), points[1].tolist(), ImageLand.ADDED_LINES_COLOR, line_width)
@@ -405,12 +408,12 @@ class ImageLand(Land):
                 cv2.line(object1_c._flow_data, points[2].tolist(), points[3].tolist(), ImageLand.ADDED_LINES_COLOR, line_width)
                 cv2.line(object1_c._flow_data, points[3].tolist(), points[0].tolist(), ImageLand.ADDED_LINES_COLOR, line_width)
 
-        if type(object2) is DualMarks:
-            start_point = int(object2._flow_data[0][1]*object1_c._flow_data.shape[1]), int(object2._flow_data[0][0]*object1_c._flow_data.shape[0])
-            end_point = int(object2._flow_data[1][1]*object1_c._flow_data.shape[1]), int(object2._flow_data[1][0]*object1_c._flow_data.shape[0])
-            line_width = max(int(min(self._flow_data.shape[0], self._flow_data.shape[1])*0.01*ImageLand.ADDED_VECTORS_WIDTH), 1)
-            distance = np.sqrt((end_point[0] - start_point[0])**2 + (end_point[1] - start_point[1])**2)
-            cv2.arrowedLine(object1_c._flow_data, start_point, end_point, color=ImageLand.ADDED_VECTORS_COLOR, thickness=line_width, tipLength=float(distance)/2e3)
+            if isinstance(object2, DualMarks):
+                start_point = int(object2._flow_data[0][0][1]), int(object2._flow_data[0][0][0])
+                end_point   = int(object2._flow_data[0][1][1]), int(object2._flow_data[0][1][0])
+                line_width = max(int(min(self._flow_data.shape[0], self._flow_data.shape[1])*0.01*ImageLand.ADDED_VECTORS_WIDTH), 1)
+                distance = np.sqrt((end_point[0] - start_point[0])**2 + (end_point[1] - start_point[1])**2) 
+                cv2.arrowedLine(object1_c._flow_data, start_point, end_point, color=ImageLand.ADDED_VECTORS_COLOR, thickness=line_width, tipLength=float(distance)/2e3)
 
         if type(object2) is HeatLand:
             if object2_c._flow_data.shape != object1_c._flow_data.shape[:2]:

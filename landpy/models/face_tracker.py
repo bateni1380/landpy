@@ -40,17 +40,18 @@ class FaceTracker(TFLiteModel):
         self._anchors = Anchor('back').anchors
 
     @Debugger.static_method_decorator('Converting output data to boxes positions', ['FaceTracker.__decode_boxes', 'FaceTracker'])
-    def __decode_face_points(points, rect,  p, debugger: Debugger = Debugger(debug=False)):
+    def __decode_face_points(points, org_rect, zoomed_rect,  p, debugger: Debugger = Debugger(debug=False)):
         face_points = np.array(points[0:4])
         face_points = np.array(list(itertools.product(
-            face_points[0::2], face_points[1::2])))  # MinX, MinY, MaxX, MaxY in (0,1)
-        face_box = SquareMarks(0, 1, 0, 1).zoom(rect, save_trace=True)
+            face_points[0::2], face_points[1::2])))
+        face_points = face_points*np.array(zoomed_rect.shape())
+        face_box = SquareMarks(shape=org_rect.shape()).zoom(zoomed_rect, save_trace=True)
         face_box.set_marks(face_points[0][0], face_points[3][0], face_points[0][1], face_points[3][1])
         face_box.retrace()
 
-        other_points = np.array(points[4:]).reshape(-1, 2)[:, ::-1]
-
-        face_points = MarksLand((SquareMarks())._flow_data).zoom(rect, save_trace=True)
+        other_points = np.array(points[4:]).reshape(-1, 2)[:, ::-1]*np.array(zoomed_rect.shape())
+        sm = SquareMarks(shape=org_rect.shape())
+        face_points = MarksLand(sm._flow_data[0], shape=sm._flow_data[1]).zoom(zoomed_rect, save_trace=True)
         face_points.set_marks(other_points)
         face_points.retrace()
 
@@ -92,9 +93,10 @@ class FaceTracker(TFLiteModel):
             
         input.make_checkpoint()
 
-        rect = SquareMarks(0, max(input._flow_data.shape[1]/input._flow_data.shape[0], 1),
-                           0, max(input._flow_data.shape[0]/input._flow_data.shape[1], 1))
-        input.zoom(rect, save_trace=False)
+        org_rect = SquareMarks(shape=input._flow_data.shape[:2])
+        zoomed_rect = SquareMarks(shape = (max(input._flow_data.shape[1], input._flow_data.shape[0]), 
+                                           max(input._flow_data.shape[0], input._flow_data.shape[1])))
+        input.zoom(zoomed_rect, save_trace=False)
         input.reshape((128, 128), save_trace=False)
         input_data = np.expand_dims(input._flow_data, axis=0)
         input_data = np.array(input_data, dtype=np.float32)/255.0
@@ -115,7 +117,7 @@ class FaceTracker(TFLiteModel):
             indices = np.where(probabilities > treshhold)[0]
 
         for i in indices:
-            face_points = FaceTracker.__decode_face_points(points[0][i], rect, probabilities[i], self._debugger)
+            face_points = FaceTracker.__decode_face_points(points[0][i], org_rect, zoomed_rect, probabilities[i], self._debugger)
             faces.append(face_points)
 
         input.undo()

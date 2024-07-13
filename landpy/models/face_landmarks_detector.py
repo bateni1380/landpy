@@ -12,9 +12,9 @@ class FaceLandmarksDetector(TFLiteModel):
     def detect_face_landmarks(self, input: ImageLand):
         input.make_checkpoint()
 
-        rect = SquareMarks(0, max(input._flow_data.shape[1]/input._flow_data.shape[0],1), 
-                           0, max(input._flow_data.shape[0]/input._flow_data.shape[1],1))
-        input.zoom(rect, save_trace=False)
+        zoomed_rect = SquareMarks(shape = (max(input._flow_data.shape[1], input._flow_data.shape[0]), 
+                                           max(input._flow_data.shape[0], input._flow_data.shape[1])))
+        input.zoom(zoomed_rect, save_trace=False)
         input.reshape((192,192), save_trace=False)
 
         input_data = np.expand_dims(input._flow_data, axis=0)
@@ -24,10 +24,10 @@ class FaceLandmarksDetector(TFLiteModel):
         output = super().inference(input_data)
         self.input_type = ImageLand
 
-        land_x = output[0][0,0,0,1::3]/192.0
-        land_y = output[0][0,0,0,0::3]/192.0
+        land_x = (output[0][0,0,0,1::3]/192.0)*input._flow_data.shape[0]
+        land_y = (output[0][0,0,0,0::3]/192.0)*input._flow_data.shape[1]
         
-        marks = MarksLand(land_x, land_y, input._debugger)
+        marks = MarksLand(land_x, land_y, shape=input._flow_data.shape, debugger=input._debugger)
         p_value = output[1][0,0,0,0]
         
         input.undo()

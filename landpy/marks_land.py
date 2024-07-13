@@ -7,21 +7,48 @@ from PIL import Image, ImageDraw, ImageOps
 import cv2
 
 
-class MarksLand(Land): #TODO ratio must be added and changed in all of project ( for rotating and stuf)
-    def __init__(self, x=None, y=None, debugger: Debugger = Debugger(debug=False)):
+# TODO ratio must be added and changed in all of project ( for rotating and stuf)
+class MarksLand(Land):
+    def __init__(self, x=None, y=None, shape=None, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger=debugger)
-        if x is not None:
-            MarksLand.set_marks(self, x, y)
+        
+        if x is None and y is None and shape is None:
+            return
+        
+        if shape is None:
+            debugger.log_warning('You need to specify  shape!')
 
+        if x is not None:
+            MarksLand.set_marks(self, x, y, shape=shape)
+
+        
+    @Debugger.method_decorator('Getting shape', ['MarksLand.shape', 'MarksLand'])
+    def shape(self):
+        if self._flow_data is None:
+            return None
+        return self._flow_data[1]
+    
     @Debugger.method_decorator('Setting marks', ['MarksLand.set_marks', 'MarksLand'])
-    def set_marks(self, x, y=None):
+    def set_marks(self, x, y=None, shape=None):
+        if shape is None:
+            shape = self.shape()
+            
         if y is None:
             marks = MarksLand.__x_to_flow_data(x, self._debugger)
         else:
             marks = MarksLand.__xy_to_flow_data(x, y, self._debugger)
-        super()._set_data(marks)
+        super()._set_data([marks, shape])
         self._debugger.log_image(
             self._flow_data, "Set marks", Debugger.LogTypes.SCATTER)
+        return self
+
+    @Debugger.method_decorator('Reshaping marks', ['MarksLand.reshape', 'MarksLand'])
+    def reshape(self, shape):
+        self._flow_data[0][:, 0] = np.array(
+            (self._flow_data[0][:, 0]/self._flow_data[1][0])*shape[0])
+        self._flow_data[0][:, 1] = np.array(
+            (self._flow_data[0][:, 1]/self._flow_data[1][1])*shape[1])
+        self._flow_data[1] = shape
         return self
 
     @Debugger.static_method_decorator('Converting to (n,2) matrix', ['MarksLand.__x_to_flow_data', 'MarksLand'])
@@ -56,12 +83,11 @@ class MarksLand(Land): #TODO ratio must be added and changed in all of project (
 
     @Debugger.method_decorator('Showing marks', ['MarksLand.show', 'MarksLand'])
     def show(self):
-        Debugger(visual_debug=True).log_image(
-            self._flow_data, '', Debugger.LogTypes.SCATTER)
+        Debugger(visual_debug=True).log_image(self._flow_data, '', Debugger.LogTypes.SCATTER)
         return self
 
     @Debugger.method_decorator('Rotating marks', ['MarksLand.rotate', 'MarksLand'])
-    def rotate(self, angle: float, center: Tuple = None, save_trace = False):
+    def rotate(self, angle: float, center: Tuple = None, save_trace=False):
         if center is None:
             center = (0.5, 0.5)
         rotation_matrix = cv2.getRotationMatrix2D(
@@ -73,10 +99,10 @@ class MarksLand(Land): #TODO ratio must be added and changed in all of project (
         self._debugger.save_image(self._flow_data, 'Marks before rotation',
                                   Debugger.LogTypes.SCATTER)
 
-        n = self._flow_data.shape[0]
-        homog_points = np.hstack((self._flow_data, np.ones((n, 1))))
+        n = self._flow_data[0].shape[0]
+        homog_points = np.hstack((self._flow_data[0], np.ones((n, 1))))
         rotated_points = np.dot(rotation_matrix, homog_points.T).T[:, :2]
-        self._flow_data = rotated_points
+        self._flow_data[0] = rotated_points
 
         self._debugger.save_image(
             self._flow_data, 'Marks after rotation', Debugger.LogTypes.SCATTER)
@@ -115,23 +141,23 @@ class MarksLand(Land): #TODO ratio must be added and changed in all of project (
         return rotated_points
 
     @Debugger.method_decorator('Zooming marks', ['MarksLand.zoom', 'MarksLand'])
-    def zoom(self, quadrilateral=None, zoom_factor=None, center=None, save_trace = False):
+    def zoom(self, quadrilateral=None, zoom_factor=None, center=None, save_trace=False):
         from landpy import QuadMarks, SquareMarks
 
         if quadrilateral is None:
-            quadrilateral = SquareMarks(zoom_factor=zoom_factor, center=center)
+            quadrilateral = SquareMarks(
+                shape=self.shape(), zoom_factor=zoom_factor, center=center)
 
         if save_trace:
             self._make_trace(MarksLand.__zoom_back, {
-                             'quadrilateral': quadrilateral.copy(save_trace)})
+                             'quadrilateral': quadrilateral.copy(save_trace), 'shape':self.shape()})
 
         self._debugger.save_image(
             self._flow_data, 'Marks before zoom', Debugger.LogTypes.SCATTER)
         if type(quadrilateral) is SquareMarks:
-            self._flow_data[:, 0] = (
-                self._flow_data[:, 0]-quadrilateral.minX())/(quadrilateral.maxX()-quadrilateral.minX())
-            self._flow_data[:, 1] = (
-                self._flow_data[:, 1]-quadrilateral.minY())/(quadrilateral.maxY()-quadrilateral.minY())
+            self._flow_data[0][:, 0] = (self._flow_data[0][:, 0]-quadrilateral.minX())
+            self._flow_data[0][:, 1] = (self._flow_data[0][:, 1]-quadrilateral.minY())
+            self._flow_data[1] = quadrilateral._flow_data[1]
         elif type(quadrilateral) is QuadMarks:
             self._debugger.log_exception(
                 "Zooming in MarksLand using QuadMarks is not supported yet!")
@@ -149,10 +175,9 @@ class MarksLand(Land): #TODO ratio must be added and changed in all of project (
         debugger.save_image(
             marksland, 'Marks before zoom back', Debugger.LogTypes.SCATTER)
         if type(quadrilateral) is SquareMarks:
-            marksland[:, 0] = (
-                marksland[:, 0]*(quadrilateral.maxX()-quadrilateral.minX()))+quadrilateral.minX()
-            marksland[:, 1] = (
-                marksland[:, 1]*(quadrilateral.maxY()-quadrilateral.minY()))+quadrilateral.minY()
+            marksland[0][:, 0] = marksland[0][:, 0]+quadrilateral.minX()
+            marksland[0][:, 1] = marksland[0][:, 1]+quadrilateral.minY()
+            marksland[1] = pars['shape']
         elif type(quadrilateral) is QuadMarks:
             debugger.log_exception(
                 "Zooming back in MarksLand using QuadMarks is not supported yet!")
@@ -163,15 +188,15 @@ class MarksLand(Land): #TODO ratio must be added and changed in all of project (
         return marksland
 
     @Debugger.method_decorator('Moving marks', ['MarksLand.move', 'MarksLand'])
-    def move(self, vector, save_trace = False):
+    def move(self, vector, save_trace=False):
         if save_trace:
             self._make_trace(MarksLand.__move_back, {'vector': vector})
 
         self._debugger.save_image(
             self._flow_data, 'Marks before moving', Debugger.LogTypes.SCATTER)
 
-        self._flow_data[:, 0] += vector[0]
-        self._flow_data[:, 1] += vector[1]
+        self._flow_data[0][:, 0] += vector[0]
+        self._flow_data[0][:, 1] += vector[1]
 
         self._debugger.save_image(
             self._flow_data, 'Marks after moving', Debugger.LogTypes.SCATTER)
@@ -183,26 +208,31 @@ class MarksLand(Land): #TODO ratio must be added and changed in all of project (
         debugger.save_image(marksland, 'Marks before moving back',
                             Debugger.LogTypes.SCATTER)
 
-        marksland[:, 0] -= pars['vector'][0]
-        marksland[:, 1] -= pars['vector'][1]
+        marksland[0][:, 0] -= pars['vector'][0]
+        marksland[0][:, 1] -= pars['vector'][1]
 
         debugger.save_image(marksland, 'Marks after moving back',
                             Debugger.LogTypes.SCATTER)
         debugger.log_saved_images()
-        
+
         return marksland
 
     @Debugger.method_decorator('Adding two marks (append marks togetter)', ['MarksLand.__add__', 'MarksLand'])
     def __add__(self, other):
+        if self.shape() != other.shape():
+                self._debugger.log_warning(
+                    "The markslands weren\'t in the same size so the second marksland is going to reshape!")
+                other.reshape(self.shape())
+                
         self._debugger.save_image(
             self._flow_data, 'Left', Debugger.LogTypes.SCATTER)
         self._debugger.save_image(
             other._flow_data, 'Right', Debugger.LogTypes.SCATTER)
         marks_set = set({})
-        for i in range(self._flow_data.shape[0]):
-            marks_set.add((self._flow_data[i, 0], self._flow_data[i, 1]))
-        for i in range(other._flow_data.shape[0]):
-            marks_set.add((other._flow_data[i, 0], other._flow_data[i, 1]))
+        for i in range(self._flow_data[0].shape[0]):
+            marks_set.add((self._flow_data[0][i, 0], self._flow_data[0][i, 1]))
+        for i in range(other._flow_data[0].shape[0]):
+            marks_set.add((other._flow_data[0][i, 0], other._flow_data[0][i, 1]))
 
         result = MarksLand(self._debugger)
         result.set_marks(list(marks_set))
@@ -214,17 +244,22 @@ class MarksLand(Land): #TODO ratio must be added and changed in all of project (
 
     @Debugger.method_decorator('Substracting two marks (remove marks of second object from the first one)', ['MarksLand.__sub__', 'MarksLand'])
     def __sub__(self, other):
+        if self.shape() != other.shape():
+                self._debugger.log_warning(
+                    "The markslands weren\'t in the same size so the second marksland is going to reshape!")
+                other.reshape(self.shape())
+                
         self._debugger.save_image(
             self._flow_data, 'Left', Debugger.LogTypes.SCATTER)
         self._debugger.save_image(
             other._flow_data, 'Right', Debugger.LogTypes.SCATTER)
         marks_set = set({})
-        for i in range(self._flow_data.shape[0]):
-            marks_set.add((self._flow_data[i, 0], self._flow_data[i, 1]))
-        for i in range(other._flow_data.shape[0]):
-            if (other._flow_data[i, 0], other._flow_data[i, 1]) in marks_set:
+        for i in range(self._flow_data[0].shape[0]):
+            marks_set.add((self._flow_data[0][i, 0], self._flow_data[0][i, 1]))
+        for i in range(other._flow_data[0].shape[0]):
+            if (other._flow_data[0][i, 0], other._flow_data[0][i, 1]) in marks_set:
                 marks_set.remove(
-                    (other._flow_data[i, 0], other._flow_data[i, 1]))
+                    (other._flow_data[0][i, 0], other._flow_data[0][i, 1]))
 
         result = MarksLand(self._debugger)
         result.set_marks(list(marks_set))
@@ -235,22 +270,20 @@ class MarksLand(Land): #TODO ratio must be added and changed in all of project (
 
     @Debugger.method_decorator('Getting indices of the object', ['MarksLand.__getitem__', 'MarksLand'])
     def __getitem__(self, index):
-        return MarksLand(self._flow_data[index], debugger=self._debugger)
+        return MarksLand(self._flow_data[0][index], shape=self.shape(), debugger=self._debugger)
 
     @Debugger.method_decorator('Converting marks object to a python list', ['MarksLand.to_list', 'MarksLand'])
     def to_list(self):
-        return (self._flow_data).tolist()
+        return ((self._flow_data[0]).tolist(), self._flow_data[1])
 
     @Debugger.method_decorator('Converting marks object to a landpy heat', ['MarksLand.to_heat', 'MarksLand'])
-    def to_heat(self, shape=(128, 128), fill_heat=1):
+    def to_heat(self, fill_heat=1):
         self._debugger.save_image(
             self._flow_data, 'Before', Debugger.LogTypes.SCATTER)
 
         from landpy import HeatLand
-        heat_p = np.zeros(shape)
-        pts = self._flow_data.copy()
-        pts[:, 0] = pts[:, 0]*shape[0]
-        pts[:, 1] = pts[:, 1]*shape[1]
+        heat_p = np.zeros(self.shape())
+        pts = self._flow_data[0].copy()
         pts = pts.astype(int).reshape((-1, 1, 2))
         cv2.fillPoly(heat_p, pts=[pts], color=(fill_heat))
         heat = HeatLand(heat_p, self._debugger)
@@ -266,12 +299,10 @@ class MarksLand(Land): #TODO ratio must be added and changed in all of project (
             self._flow_data, 'Before', Debugger.LogTypes.SCATTER)
 
         from landpy import SquareMarks
-        sm = SquareMarks(self._debugger).set_marks(minX=np.min(self._flow_data[:, 0]),
-                                                   maxX=np.max(
-                                                       self._flow_data[:, 0]),
-                                                   minY=np.min(
-                                                       self._flow_data[:, 1]),
-                                                   maxY=np.max(self._flow_data[:, 1]))
+        sm = SquareMarks(self.shape(), self._debugger).set_marks(minX=np.min(self._flow_data[0][:, 0]),
+                                                                 maxX=np.max(self._flow_data[0][:, 0]),
+                                                                 minY=np.min(self._flow_data[0][:, 1]),
+                                                                 maxY=np.max(self._flow_data[0][:, 1]))
 
         self._debugger.save_image(
             sm._flow_data, 'After', Debugger.LogTypes.SCATTER)
