@@ -30,6 +30,7 @@ class HeatLand(Land):
     def show(self):
         Debugger(visual_debug=True).log_image(
             self._flow_data, '', Debugger.LogTypes.HEAT)
+        return self
 
     @Debugger.method_decorator('Adding two heats (maximums in each place)', ['HeatLand.__add__', 'HeatLand'])
     def __add__(self, other):

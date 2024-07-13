@@ -66,6 +66,7 @@ class Land:
         last_call = self.__trace.pop()
         inv_fun, pars = last_call['inv_fun'], last_call['pars']
         self._flow_data = inv_fun(self._flow_data, pars, self._debugger)
+        return self
 
     @Debugger.static_method_decorator('Copying the whole trace', ['Land.__copy_trace', 'Land'])
     def __copy_trace(trace, flow_data, copy_trace=True, debugger=Debugger(debug=False)):

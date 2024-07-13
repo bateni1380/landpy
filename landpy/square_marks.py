@@ -33,11 +33,18 @@ class SquareMarks(QuadMarks):
             self._debugger.log_exception(
                 'minX and minY must be less than maxX and maxY!')
 
-        x = [minX, minX, maxX, maxX]
-        y = [minY, maxY, maxY, minY]
+        x = [minX, maxX, maxX, minX]
+        y = [minY, minY, maxY, maxY]
         MarksLand.set_marks(self, x, y)
         return self
 
+    @Debugger.method_decorator('Enlarging or shrinking the square. ', ['SquareMarks.expand', 'SquareMarks'])
+    def expand(self, value):
+        minX, maxX, minY, maxY = self.minX(), self.maxX(), self.minY(), self.maxY()
+        lenX = (maxX-minX)*(value-1)/2
+        lenY = (maxY-minY)*(value-1)/2
+        return self.set_marks(minX-lenX, maxX+lenX, minY-lenY, maxY+lenY)
+        
     def minX(self):
         return np.min(self._flow_data[:, 0])
 
@@ -64,11 +71,3 @@ class SquareMarks(QuadMarks):
         else:
             return None
 
-    @Debugger.method_decorator('Copying SquareMarks', ['SquareMarks.copy', 'SquareMarks'])
-    def copy(self, copy_trace=True):
-        copied_land = super().copy(copy_trace=copy_trace)
-        copied_land.minX = self.minX
-        copied_land.maxX = self.maxX
-        copied_land.minY = self.minY
-        copied_land.maxY = self.maxY
-        return copied_land

@@ -73,6 +73,7 @@ class ImageLand(Land):
     @Debugger.method_decorator('Showing the image', ['ImageLand.show', 'ImageLand'])
     def show(self, desc=''):
         Debugger(visual_debug=True).log_image(self._flow_data, desc=desc)
+        return self
 
     @Debugger.method_decorator('Rotating image', ['ImageLand.rotate', 'ImageLand'])
     def rotate(self, angle: float, center: Tuple = None, save_trace=False, fill_color=(0, 0, 0)):
@@ -82,7 +83,7 @@ class ImageLand(Land):
 
         self._debugger.log('(angle, center) = ({}, {})'.format(
             angle, center), )
-
+        
         rotation_matrix = cv2.getRotationMatrix2D(
             center=center, angle=angle, scale=1)
 
@@ -377,7 +378,6 @@ class ImageLand(Land):
     def __add(self, object2):
         object1_c = self.copy(copy_trace=True)
         object2_c = object2.copy(copy_trace=False)
-        print(object1_c._debugger, object2_c._debugger)
         if type(object2) is ImageLand:
             if object1_c._flow_data.shape != object2_c._flow_data.shape:
                 self._debugger.log_warning(
@@ -391,26 +391,26 @@ class ImageLand(Land):
             object1_c._flow_data = ((object1_c._flow_data.astype(
                 'uint16')+object2_c._flow_data.astype('uint16'))/2).astype('uint8')
 
-        elif type(object2) is MarksLand or type(object2) is SquareMarks or type(object2) is QuadMarks:
+        elif isinstance(object2, MarksLand):
+            points = (object2._flow_data*np.array(object1_c._flow_data.shape[:2])).astype(int)[:,::-1]
             dot_radius = int(min(
                 self._flow_data.shape[0], self._flow_data.shape[1])*ImageLand.ADDED_POINTS_RADIOUS*0.01)
-            for pos in object2_c._flow_data:
-                cv2.circle(object1_c._flow_data,
-                           (int(pos[0]*object1_c._flow_data.shape[0]), int(pos[1]*object1_c._flow_data.shape[1])), dot_radius, ImageLand.ADDED_POINTS_COLOR, -1)
+            for point in points:
+                cv2.circle(object1_c._flow_data, point.tolist(), dot_radius, ImageLand.ADDED_POINTS_COLOR, -1)
             line_width = max(int(min(self._flow_data.shape[0], self._flow_data.shape[1])*0.01*ImageLand.ADDED_LINES_WIDTH), 1)
-            if type(object2) is SquareMarks:
-                minX, maxX, minY, maxY = int(object2.minX()*object1_c._flow_data.shape[0]), int(object2.maxX()*object1_c._flow_data.shape[0]), int(object2.minY()*object1_c._flow_data.shape[1]), int(object2.maxY()*object1_c._flow_data.shape[1])
-                cv2.line(object1_c._flow_data, (minX, minY), (maxX, minY), ImageLand.ADDED_LINES_COLOR, line_width)
-                cv2.line(object1_c._flow_data, (minX, minY), (minX, maxY), ImageLand.ADDED_LINES_COLOR, line_width)
-                cv2.line(object1_c._flow_data, (maxX, maxY), (maxX, minY), ImageLand.ADDED_LINES_COLOR, line_width)
-                cv2.line(object1_c._flow_data, (maxX, maxY), (minX, maxY), ImageLand.ADDED_LINES_COLOR, line_width)
+            if isinstance(object2, SquareMarks):
+                #minX, maxX, minY, maxY = int(object2.minX()*object1_c._flow_data.shape[0]), int(object2.maxX()*object1_c._flow_data.shape[0]), int(object2.minY()*object1_c._flow_data.shape[1]), int(object2.maxY()*object1_c._flow_data.shape[1])
+                cv2.line(object1_c._flow_data, points[0].tolist(), points[1].tolist(), ImageLand.ADDED_LINES_COLOR, line_width)
+                cv2.line(object1_c._flow_data, points[1].tolist(), points[2].tolist(), ImageLand.ADDED_LINES_COLOR, line_width)
+                cv2.line(object1_c._flow_data, points[2].tolist(), points[3].tolist(), ImageLand.ADDED_LINES_COLOR, line_width)
+                cv2.line(object1_c._flow_data, points[3].tolist(), points[0].tolist(), ImageLand.ADDED_LINES_COLOR, line_width)
 
         if type(object2) is DualMarks:
-            start_point = int(object2._flow_data[0][0]*object1_c._flow_data.shape[0]), int(object2._flow_data[0][1]*object1_c._flow_data.shape[1])
-            end_point = int(object2._flow_data[1][0]*object1_c._flow_data.shape[0]), int(object2._flow_data[1][1]*object1_c._flow_data.shape[1])
+            start_point = int(object2._flow_data[0][1]*object1_c._flow_data.shape[1]), int(object2._flow_data[0][0]*object1_c._flow_data.shape[0])
+            end_point = int(object2._flow_data[1][1]*object1_c._flow_data.shape[1]), int(object2._flow_data[1][0]*object1_c._flow_data.shape[0])
             line_width = max(int(min(self._flow_data.shape[0], self._flow_data.shape[1])*0.01*ImageLand.ADDED_VECTORS_WIDTH), 1)
             distance = np.sqrt((end_point[0] - start_point[0])**2 + (end_point[1] - start_point[1])**2)
-            cv2.arrowedLine(object1_c._flow_data, start_point, end_point, color=ImageLand.ADDED_VECTORS_COLOR, thickness=line_width, tipLength=float(distance)/2e4)
+            cv2.arrowedLine(object1_c._flow_data, start_point, end_point, color=ImageLand.ADDED_VECTORS_COLOR, thickness=line_width, tipLength=float(distance)/2e3)
 
         if type(object2) is HeatLand:
             if object2_c._flow_data.shape != object1_c._flow_data.shape[:2]:

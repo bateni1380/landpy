@@ -26,6 +26,7 @@ class DualMarks(MarksLand):
     def show(self):
         Debugger(visual_debug=True).log_image(
             self._flow_data, '', Debugger.LogTypes.VECTOR)
+        return self
         
     def lenght(self):
         start_point = (self._flow_data[0][0], self._flow_data[0][1])
@@ -34,7 +35,8 @@ class DualMarks(MarksLand):
         return distance
 
     def angle(self):
-        start_point = (self._flow_data[0][0], self._flow_data[0][1])
-        end_point = (self._flow_data[1][0], self._flow_data[1][1])
-        return np.arctan2(end_point[1] - start_point[1], end_point[0] - start_point[0])
+        start_point = (self._flow_data[0][1], 1-self._flow_data[0][0])
+        end_point = (self._flow_data[1][1], 1-self._flow_data[1][0])
+        angle_rad = np.arctan2(end_point[1] - start_point[1], end_point[0] - start_point[0])
+        return np.degrees(angle_rad)
 

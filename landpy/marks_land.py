@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageOps
 import cv2
 
 
-class MarksLand(Land):
+class MarksLand(Land): #TODO ratio must be added and changed in all of project ( for rotating and stuf)
     def __init__(self, x=None, y=None, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger=debugger)
         if x is not None:
@@ -50,7 +50,7 @@ class MarksLand(Land):
         marks = np.hstack([x, y])
         return marks
 
-    @Debugger.method_decorator('Getting marks!', ['MarksLand.get_marks', 'MarksLand'])
+    @Debugger.method_decorator('Getting marks', ['MarksLand.get_marks', 'MarksLand'])
     def get_marks(self):
         super()._get_data()
 
@@ -58,10 +58,11 @@ class MarksLand(Land):
     def show(self):
         Debugger(visual_debug=True).log_image(
             self._flow_data, '', Debugger.LogTypes.SCATTER)
+        return self
 
     @Debugger.method_decorator('Rotating marks', ['MarksLand.rotate', 'MarksLand'])
-    def rotate(self, angle: float, center: Tuple = None, save_trace: bool = True):
-        if center == None:
+    def rotate(self, angle: float, center: Tuple = None, save_trace = False):
+        if center is None:
             center = (0.5, 0.5)
         rotation_matrix = cv2.getRotationMatrix2D(
             center=center, angle=-angle, scale=1)
@@ -69,7 +70,7 @@ class MarksLand(Land):
         self._debugger.log('(angle, center) = ({}, {})'.format(
             angle, center))
 
-        self._debugger.save_image(self._flow_data, 'Marks before rotation!',
+        self._debugger.save_image(self._flow_data, 'Marks before rotation',
                                   Debugger.LogTypes.SCATTER)
 
         n = self._flow_data.shape[0]
@@ -78,7 +79,7 @@ class MarksLand(Land):
         self._flow_data = rotated_points
 
         self._debugger.save_image(
-            self._flow_data, 'Marks after rotation!', Debugger.LogTypes.SCATTER)
+            self._flow_data, 'Marks after rotation', Debugger.LogTypes.SCATTER)
 
         if save_trace:
             self._make_trace(MarksLand.__rotate_back, {
@@ -92,7 +93,7 @@ class MarksLand(Land):
         angle, center = pars['angle'], pars['center']
         height, width = np.max(marks[:, 0])-np.min(
             marks[:, 0]), np.max(marks[:, 1])-np.min(marks[:, 1])
-        if center == None:
+        if center is None:
             center = (int(width/2), int(height/2))
 
         debugger.log('(angle, center) = ({}, {})'.format(
@@ -102,21 +103,21 @@ class MarksLand(Land):
             center=center, angle=angle, scale=1)
 
         debugger.save_image(
-            marks, 'Marks before rotation back!', Debugger.LogTypes.SCATTER)
+            marks, 'Marks before rotation back', Debugger.LogTypes.SCATTER)
 
         n = marks.shape[0]
         homog_points = np.hstack((marks, np.ones((n, 1))))
         rotated_points = np.dot(rotation_matrix, homog_points.T).T[:, :2]
 
         debugger.save_image(
-            rotated_points, 'Marks after rotation back!', Debugger.LogTypes.SCATTER)
+            rotated_points, 'Marks after rotation back', Debugger.LogTypes.SCATTER)
         debugger.log_saved_images()
         return rotated_points
 
     @Debugger.method_decorator('Zooming marks', ['MarksLand.zoom', 'MarksLand'])
-    def zoom(self, quadrilateral=None, zoom_factor=None, center=None, save_trace: bool = True):
+    def zoom(self, quadrilateral=None, zoom_factor=None, center=None, save_trace = False):
         from landpy import QuadMarks, SquareMarks
-        
+
         if quadrilateral is None:
             quadrilateral = SquareMarks(zoom_factor=zoom_factor, center=center)
 
@@ -125,7 +126,7 @@ class MarksLand(Land):
                              'quadrilateral': quadrilateral.copy(save_trace)})
 
         self._debugger.save_image(
-            self._flow_data, 'Marks before zoom!', Debugger.LogTypes.SCATTER)
+            self._flow_data, 'Marks before zoom', Debugger.LogTypes.SCATTER)
         if type(quadrilateral) is SquareMarks:
             self._flow_data[:, 0] = (
                 self._flow_data[:, 0]-quadrilateral.minX())/(quadrilateral.maxX()-quadrilateral.minX())
@@ -136,7 +137,7 @@ class MarksLand(Land):
                 "Zooming in MarksLand using QuadMarks is not supported yet!")
 
         self._debugger.save_image(
-            self._flow_data, 'Marks after zoom!', Debugger.LogTypes.SCATTER)
+            self._flow_data, 'Marks after zoom', Debugger.LogTypes.SCATTER)
         self._debugger.log_saved_images()
         return self
 
@@ -146,7 +147,7 @@ class MarksLand(Land):
         quadrilateral = pars['quadrilateral']
 
         debugger.save_image(
-            marksland, 'Marks before zoom back!', Debugger.LogTypes.SCATTER)
+            marksland, 'Marks before zoom back', Debugger.LogTypes.SCATTER)
         if type(quadrilateral) is SquareMarks:
             marksland[:, 0] = (
                 marksland[:, 0]*(quadrilateral.maxX()-quadrilateral.minX()))+quadrilateral.minX()
@@ -157,8 +158,38 @@ class MarksLand(Land):
                 "Zooming back in MarksLand using QuadMarks is not supported yet!")
 
         debugger.save_image(
-            marksland, 'Marks after zoom back!', Debugger.LogTypes.SCATTER)
+            marksland, 'Marks after zoom back', Debugger.LogTypes.SCATTER)
         debugger.log_saved_images()
+        return marksland
+
+    @Debugger.method_decorator('Moving marks', ['MarksLand.move', 'MarksLand'])
+    def move(self, vector, save_trace = False):
+        if save_trace:
+            self._make_trace(MarksLand.__move_back, {'vector': vector})
+
+        self._debugger.save_image(
+            self._flow_data, 'Marks before moving', Debugger.LogTypes.SCATTER)
+
+        self._flow_data[:, 0] += vector[0]
+        self._flow_data[:, 1] += vector[1]
+
+        self._debugger.save_image(
+            self._flow_data, 'Marks after moving', Debugger.LogTypes.SCATTER)
+        self._debugger.log_saved_images()
+        return self
+
+    @Debugger.static_method_decorator('Moving back marks', ['MarksLand.__move_back', 'MarksLand'])
+    def __move_back(marksland, pars: Dict, debugger: Debugger):
+        debugger.save_image(marksland, 'Marks before moving back',
+                            Debugger.LogTypes.SCATTER)
+
+        marksland[:, 0] -= pars['vector'][0]
+        marksland[:, 1] -= pars['vector'][1]
+
+        debugger.save_image(marksland, 'Marks after moving back',
+                            Debugger.LogTypes.SCATTER)
+        debugger.log_saved_images()
+        
         return marksland
 
     @Debugger.method_decorator('Adding two marks (append marks togetter)', ['MarksLand.__add__', 'MarksLand'])
@@ -201,11 +232,11 @@ class MarksLand(Land):
             result._flow_data, 'Result', Debugger.LogTypes.SCATTER)
         self._debugger.log_saved_images()
         return result
-    
+
     @Debugger.method_decorator('Getting indices of the object', ['MarksLand.__getitem__', 'MarksLand'])
     def __getitem__(self, index):
         return MarksLand(self._flow_data[index], debugger=self._debugger)
-    
+
     @Debugger.method_decorator('Converting marks object to a python list', ['MarksLand.to_list', 'MarksLand'])
     def to_list(self):
         return (self._flow_data).tolist()

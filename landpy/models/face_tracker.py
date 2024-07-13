@@ -5,6 +5,34 @@ import itertools
 import math
 
 
+class FaceTackerIndices:
+    UPPER_LEFT_CORNER = 0
+    UPPER_RIGHT_CORNER = 1
+    LOWER_LEFT_CORNER = 3   
+    LOWER_RIGHT_CORNER = 2
+    RIGHT_EYE = 4
+    LEFT_EYE = 5
+    NOSE = 6
+    MOUTH = 7
+    RIGHT_EAR = 8
+    LEFT_EAR = 9
+
+class FacePoints:
+    def __init__(self, face_box: SquareMarks, face_points: MarksLand, p: float, debugger: Debugger = Debugger(debug=False)):
+        self._debugger = debugger
+        self.face_box = face_box
+        self.face_points = face_points
+        self.p = p
+        
+    
+    @Debugger.method_decorator('Getting indices of face points', ['FacePoints.__getitem__', 'FacePoints'])
+    def __getitem__(self, index):
+        if index < 4:
+            return self.face_box[index]
+        else:
+            return self.face_points[index-4]
+
+        
 class FaceTracker(TFLiteModel):
     def __init__(self, debugger: Debugger = Debugger(debug=False)):
         super().__init__('landpy/models/model_files/face_detection_short_range.tflite',
@@ -12,23 +40,24 @@ class FaceTracker(TFLiteModel):
         self._anchors = Anchor('back').anchors
 
     @Debugger.static_method_decorator('Converting output data to boxes positions', ['FaceTracker.__decode_boxes', 'FaceTracker'])
-    def __decode_face_points(points, rect, debugger: Debugger = Debugger(debug=False)):
+    def __decode_face_points(points, rect,  p, debugger: Debugger = Debugger(debug=False)):
         face_points = np.array(points[0:4])
         face_points = np.array(list(itertools.product(
             face_points[0::2], face_points[1::2])))  # MinX, MinY, MaxX, MaxY in (0,1)
-
-        sq1 = SquareMarks(0, 1, 0, 1).zoom(rect)
-        sq1.set_marks(face_points[0][0], face_points[3]
-                      [0], face_points[0][1], face_points[3][1])
-        sq1.retrace()
+        face_box = SquareMarks(0, 1, 0, 1).zoom(rect, save_trace=True)
+        face_box.set_marks(face_points[0][0], face_points[3][0], face_points[0][1], face_points[3][1])
+        face_box.retrace()
 
         other_points = np.array(points[4:]).reshape(-1, 2)[:, ::-1]
 
-        sq2 = MarksLand((SquareMarks())._flow_data).zoom(rect)
-        sq2.set_marks(other_points)
-        sq2.retrace()
+        face_points = MarksLand((SquareMarks())._flow_data).zoom(rect, save_trace=True)
+        face_points.set_marks(other_points)
+        face_points.retrace()
 
-        return sq1, sq2
+        face_box.set_debugger(debugger)
+        face_points.set_debugger(debugger)
+        
+        return FacePoints(face_box, face_points, p)
 
     @Debugger.static_method_decorator('Converting output data to boxes positions', ['FaceTracker.__decode_boxes', 'FaceTracker'])
     def __decode_boxes(raw_boxes, anchors, input_shape=(128, 128), scale_shape=(1, 1), debugger: Debugger = Debugger(debug=False)):
@@ -58,6 +87,9 @@ class FaceTracker(TFLiteModel):
 
     @Debugger.method_decorator('Inferencing by model', ['FaceTracker.detect_faces', 'FaceTracker'])
     def detect_faces(self, input: ImageLand, treshhold=None, top_k=None):
+        if top_k is not None and treshhold is not None:
+            self._debugger.log_exception('You can\'t feed treshhold and top_k at the same time!')
+            
         input.make_checkpoint()
 
         rect = SquareMarks(0, max(input._flow_data.shape[1]/input._flow_data.shape[0], 1),
@@ -72,25 +104,19 @@ class FaceTracker(TFLiteModel):
         self.input_type = ImageLand
 
         faces = []
-        points = FaceTracker.__decode_boxes(
-            output[0], self._anchors, debugger=Debugger(debug=False))
-
-        top_k_indices = []
+        points = FaceTracker.__decode_boxes(output[0], self._anchors, debugger=Debugger(debug=False))
+        probabilities = np.array(output[1][0][:, 0])
+        
+        indices = []
         if top_k is not None:
-            arr = np.array(output[1][0][:, 0])
-            partitioned_indices = np.argpartition(arr, -top_k)[-top_k:]
-            top_k_indices = partitioned_indices[np.argsort(
-                -arr[partitioned_indices])]
+            partitioned_indices = np.argpartition(probabilities, -top_k)[-top_k:]
+            indices = partitioned_indices[np.argsort(-probabilities[partitioned_indices])]
+        if treshhold is not None:
+            indices = np.where(probabilities > treshhold)[0]
 
-        for i in range(len(output[1][0])):
-            if (treshhold is not None and output[1][0][i] > treshhold) or (top_k is not None and i in top_k_indices):
-                face_points, other_points = FaceTracker.__decode_face_points(
-                    points[0][i], rect, debugger=Debugger(debug=False))
-
-                face_points._debugger = input._debugger
-                other_points._debugger = input._debugger
-
-                faces.append((face_points, other_points, output[1][0][i][0]))
+        for i in indices:
+            face_points = FaceTracker.__decode_face_points(points[0][i], rect, probabilities[i], self._debugger)
+            faces.append(face_points)
 
         input.undo()
         return faces
