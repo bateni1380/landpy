@@ -1,10 +1,14 @@
-from landpy.models import TFModel
+from .config import MODEL_URLS
+from landpy.tf_model import TFModel
 import numpy as np
 from landpy import ImageLand, Debugger, SquareMarks
 
 class ExpressionDetector(TFModel):
     def __init__(self, debugger: Debugger = Debugger(debug=False)):
-        super().__init__('landpy/models/model_files/facial_expression.h5', ImageLand, list, debugger)
+        super().__init__(MODEL_URLS['expression_detector'],
+                         input_type=ImageLand,
+                         output_type=list,
+                         debugger=debugger)
         self.output_labels = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
     
     @Debugger.method_decorator('Inferencing by model', ['ExpressionDetector.detect_expression', 'ExpressionDetector'])

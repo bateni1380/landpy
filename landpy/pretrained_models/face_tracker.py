@@ -1,4 +1,5 @@
-from landpy.models import TFLiteModel
+from .config import MODEL_URLS
+from landpy.tf_lite_model import TFLiteModel
 import numpy as np
 from landpy import ImageLand, Debugger, SquareMarks, MarksLand
 import itertools
@@ -8,7 +9,7 @@ import math
 class FaceTackerIndices:
     UPPER_LEFT_CORNER = 0
     UPPER_RIGHT_CORNER = 1
-    LOWER_LEFT_CORNER = 3   
+    LOWER_LEFT_CORNER = 3
     LOWER_RIGHT_CORNER = 2
     RIGHT_EYE = 4
     LEFT_EYE = 5
@@ -17,6 +18,7 @@ class FaceTackerIndices:
     RIGHT_EAR = 8
     LEFT_EAR = 9
 
+
 class FacePoints:
     def __init__(self, face_box: SquareMarks, face_points: MarksLand, p: float, debugger: Debugger = Debugger(debug=False)):
         self._debugger = debugger
@@ -24,7 +26,9 @@ class FacePoints:
         self.face_points = face_points
         self.p = p
         
-    
+    def show(self):
+        (self.face_box+self.face_points).show()
+
     @Debugger.method_decorator('Getting indices of face points', ['FacePoints.__getitem__', 'FacePoints'])
     def __getitem__(self, index):
         if index < 4:
@@ -32,11 +36,13 @@ class FacePoints:
         else:
             return self.face_points[index-4]
 
-        
+
 class FaceTracker(TFLiteModel):
     def __init__(self, debugger: Debugger = Debugger(debug=False)):
-        super().__init__('landpy/models/model_files/face_detection_short_range.tflite',
-                         ImageLand, list, debugger)
+        super().__init__(model_url=MODEL_URLS['face_tracker'],
+                         input_type=ImageLand,
+                         output_type=list,
+                         debugger=debugger)
         self._anchors = Anchor('back').anchors
 
     @Debugger.static_method_decorator('Converting output data to boxes positions', ['FaceTracker.__decode_boxes', 'FaceTracker'])
@@ -45,19 +51,23 @@ class FaceTracker(TFLiteModel):
         face_points = np.array(list(itertools.product(
             face_points[0::2], face_points[1::2])))
         face_points = face_points*np.array(zoomed_rect.shape())
-        face_box = SquareMarks(shape=org_rect.shape()).zoom(zoomed_rect, save_trace=True)
-        face_box.set_marks(face_points[0][0], face_points[3][0], face_points[0][1], face_points[3][1])
+        face_box = SquareMarks(shape=org_rect.shape()).zoom(
+            zoomed_rect, save_trace=True)
+        face_box.set_marks(
+            face_points[0][0], face_points[3][0], face_points[0][1], face_points[3][1])
         face_box.retrace()
 
-        other_points = np.array(points[4:]).reshape(-1, 2)[:, ::-1]*np.array(zoomed_rect.shape())
+        other_points = np.array(
+            points[4:]).reshape(-1, 2)[:, ::-1]*np.array(zoomed_rect.shape())
         sm = SquareMarks(shape=org_rect.shape())
-        face_points = MarksLand(sm._flow_data[0], shape=sm._flow_data[1]).zoom(zoomed_rect, save_trace=True)
+        face_points = MarksLand(sm._flow_data[0], shape=sm._flow_data[1]).zoom(
+            zoomed_rect, save_trace=True)
         face_points.set_marks(other_points)
         face_points.retrace()
 
         face_box.set_debugger(debugger)
         face_points.set_debugger(debugger)
-        
+
         return FacePoints(face_box, face_points, p)
 
     @Debugger.static_method_decorator('Converting output data to boxes positions', ['FaceTracker.__decode_boxes', 'FaceTracker'])
@@ -89,13 +99,16 @@ class FaceTracker(TFLiteModel):
     @Debugger.method_decorator('Inferencing by model', ['FaceTracker.detect_faces', 'FaceTracker'])
     def detect_faces(self, input: ImageLand, treshhold=None, top_k=None):
         if top_k is not None and treshhold is not None:
-            self._debugger.log_exception('You can\'t feed treshhold and top_k at the same time!')
+            self._debugger.log_exception(
+                'You can\'t feed treshhold and top_k at the same time!')
+        if top_k is None and treshhold is None:
+            top_k = 1
             
         input.make_checkpoint()
 
         org_rect = SquareMarks(shape=input._flow_data.shape[:2])
-        zoomed_rect = SquareMarks(shape = (max(input._flow_data.shape[1], input._flow_data.shape[0]), 
-                                           max(input._flow_data.shape[0], input._flow_data.shape[1])))
+        zoomed_rect = SquareMarks(shape=(max(input._flow_data.shape[1], input._flow_data.shape[0]),
+                                         max(input._flow_data.shape[0], input._flow_data.shape[1])))
         input.zoom(zoomed_rect, save_trace=False)
         input.reshape((128, 128), save_trace=False)
         input_data = np.expand_dims(input._flow_data, axis=0)
@@ -106,18 +119,22 @@ class FaceTracker(TFLiteModel):
         self.input_type = ImageLand
 
         faces = []
-        points = FaceTracker.__decode_boxes(output[0], self._anchors, debugger=Debugger(debug=False))
+        points = FaceTracker.__decode_boxes(
+            output[0], self._anchors, debugger=Debugger(debug=False))
         probabilities = np.array(output[1][0][:, 0])
-        
+
         indices = []
         if top_k is not None:
-            partitioned_indices = np.argpartition(probabilities, -top_k)[-top_k:]
-            indices = partitioned_indices[np.argsort(-probabilities[partitioned_indices])]
+            partitioned_indices = np.argpartition(
+                probabilities, -top_k)[-top_k:]
+            indices = partitioned_indices[np.argsort(
+                -probabilities[partitioned_indices])]
         if treshhold is not None:
             indices = np.where(probabilities > treshhold)[0]
 
         for i in indices:
-            face_points = FaceTracker.__decode_face_points(points[0][i], org_rect, zoomed_rect, probabilities[i], self._debugger)
+            face_points = FaceTracker.__decode_face_points(
+                points[0][i], org_rect, zoomed_rect, probabilities[i], self._debugger)
             faces.append(face_points)
 
         input.undo()

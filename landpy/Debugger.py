@@ -1,6 +1,6 @@
 import inspect
 import time
-from typing import Any, Callable, Dict, Iterable, List, Literal, Tuple, AnyStr
+from typing import Any, Callable, Dict, Iterable, List, Literal, Tuple, AnyStr, Union
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -83,7 +83,7 @@ class Debugger:
             return
         self.__last_log_categories.pop()
 
-    def log(self, desc: str, categories: Iterable[str] = None):
+    def log(self, desc: str, categories: Iterable[str] = None, end='\n'):
         '''
             You can use this function to log an event in console.
             You just have two parameters here. desc is the description
@@ -101,7 +101,7 @@ class Debugger:
             self.__set_frame()
             _, last_time = self.__time_stack[-1]
             self.__print(desc, self.__get_line_info(),
-                         Debugger.__get_time_info(time.time()-last_time))
+                         Debugger.__get_time_info(time.time()-last_time), end=end)
 
     def log_start(self, desc: str, categories: Iterable[str] = None):
         '''
@@ -283,9 +283,9 @@ class Debugger:
     def __get_time_info(t):
         return ('time = {:.4f}'.format(t))
 
-    def __print(self, desc: str = '', line_info: str = '', time_info: str = ''):
+    def __print(self, desc: str = '', line_info: str = '', time_info: str = '', end='\n'):
         tabs = self.__start_tabs*'\t'
-        print(tabs + line_info + ' ' + desc + ' ' + time_info)
+        print(tabs + line_info + ' ' + desc + ' ' + time_info, end=end)
 
     def __log_start(self, desc: str, categories: Iterable[str] = None):
         self.__time_stack.append((desc, time.time()))
@@ -303,6 +303,13 @@ class Debugger:
             self.__print(last_desc + ' ended', self.__get_line_info(),
                          Debugger.__get_time_info(time.time()-last_time))
 
+    def __calculate_log_categories_from_func_name(func):
+        # If the function is A.f it outputs [A.f, A, f] 
+        qualname = func.__qualname__
+        classname, methodname = qualname.split(".")
+        log_categories = [qualname, classname, methodname]
+        return log_categories
+    
     def __modify_method_args(func, self, func_args, func_kargs):
         # Get the original function's signature and bind any default values
         sig = inspect.signature(func)
@@ -321,13 +328,18 @@ class Debugger:
                 bound_args.arguments[param_name] = param.default
         return bound_args
 
-    def method_decorator(desc: str, log_categories: List):
+    METHOD_INFO = 0
+    def method_decorator(desc: str, log_categories: Union[List, int]=0):
         def dec_wrapper(func):
             def func_wrapper(self, *func_args, **func_kargs):
+                local_log_categories = log_categories
+                if local_log_categories==Debugger.METHOD_INFO:
+                    local_log_categories = Debugger.__calculate_log_categories_from_func_name(func)
+                    
                 bound_args = Debugger.__modify_method_args(
                     func, self, func_args, func_kargs)
 
-                self._debugger.append_last_log_categories(log_categories)
+                self._debugger.append_last_log_categories(local_log_categories)
                 self._debugger.log_start(
                     desc, categories=self._debugger.get_last_log_categories())
                 result = func(**bound_args.arguments)

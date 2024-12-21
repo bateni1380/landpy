@@ -218,7 +218,7 @@ class MarksLand(Land):
         return marksland
 
     @Debugger.method_decorator('Adding two marks (append marks togetter)', ['MarksLand.__add__', 'MarksLand'])
-    def __add__(self, other):
+    def __add__(self, other: 'MarksLand'):
         if self.shape() != other.shape():
                 self._debugger.log_warning(
                     "The markslands weren\'t in the same size so the second marksland is going to reshape!")
@@ -228,6 +228,7 @@ class MarksLand(Land):
             self._flow_data, 'Left', Debugger.LogTypes.SCATTER)
         self._debugger.save_image(
             other._flow_data, 'Right', Debugger.LogTypes.SCATTER)
+        
         marks_set = set({})
         for i in range(self._flow_data[0].shape[0]):
             marks_set.add((self._flow_data[0][i, 0], self._flow_data[0][i, 1]))
@@ -235,7 +236,7 @@ class MarksLand(Land):
             marks_set.add((other._flow_data[0][i, 0], other._flow_data[0][i, 1]))
 
         result = MarksLand(self._debugger)
-        result.set_marks(list(marks_set))
+        result.set_marks(list(marks_set), shape=max(self.shape(), other.shape()))
 
         self._debugger.save_image(
             result._flow_data, 'Result', Debugger.LogTypes.SCATTER)

@@ -1,11 +1,14 @@
-from landpy.models import TFLiteModel
+from landpy.tf_lite_model import TFLiteModel
 import numpy as np
 from landpy import ImageLand, Debugger, SquareMarks, MarksLand
+from .config import MODEL_URLS
 
 class FaceLandmarksDetector(TFLiteModel):  
     def __init__(self, debugger: Debugger = Debugger(debug=False)):
-        super().__init__('landpy/models/model_files/face_landmark.tflite', ImageLand, list, debugger)
-        self.output_labels = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
+        super().__init__(MODEL_URLS['face_landmark_detector'],
+                         input_type=ImageLand,
+                         output_type=list,
+                         debugger=debugger)
         self.land_input_shape = ('RGB', (192,192,3), 'float32', True)
         
     @Debugger.method_decorator('Inferencing by model', ['ExpressionDetector.detect_expression', 'ExpressionDetector'])
