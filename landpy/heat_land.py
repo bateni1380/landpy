@@ -8,12 +8,17 @@ from landpy import QuadMarks, SquareMarks, Filter
 
 
 class HeatLand(Land):
-    def __init__(self, heat=None, debugger: Debugger = Debugger(debug=False)):
+    def __init__(self, heat_data: np.ndarray=None, shape: Tuple=None, fill_value: float=None, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger)
-        if heat is not None:
-            HeatLand.set_heat(self, heat)
+        if heat_data is not None:
+            HeatLand.set_heat(self, heat_data)
+        elif shape is not None:
+            if fill_value is None:
+                fill_value = 0.0
+            heat_data = np.ones(shape=shape)*fill_value
+            HeatLand.set_heat(self, heat_data)
 
-    @Debugger.method_decorator('Setting heat', ['HeatLand.set_data', 'HeatLand'])
+    @Debugger.method_decorator('Setting heat')
     def set_heat(self, heat: np.ndarray):
         heat = np.array(heat)
         if len(heat.shape) != 2:
@@ -26,13 +31,13 @@ class HeatLand(Land):
 
         return self
 
-    @Debugger.method_decorator('Showing the heat', ['HeatLand.show', 'HeatLand'])
+    @Debugger.method_decorator('Showing the heat')
     def show(self):
         Debugger(visual_debug=True).log_image(
             self._flow_data, '', Debugger.LogTypes.HEAT)
         return self
 
-    @Debugger.method_decorator('Adding two heats (maximums in each place)', ['HeatLand.__add__', 'HeatLand'])
+    @Debugger.method_decorator('Adding two heats (maximums in each place)')
     def __add__(self, other):
         if not isinstance(other, HeatLand):
             self._debugger.log_exception(
@@ -50,7 +55,7 @@ class HeatLand(Land):
         self._debugger.log_saved_images()
         return result
 
-    @Debugger.method_decorator('Substracting two heats (minimums in each place)', ['HeatLand.__sub__', 'HeatLand'])
+    @Debugger.method_decorator('Substracting two heats (minimums in each place)')
     def __sub__(self, other):
         if not isinstance(other, HeatLand):
             self._debugger.log_exception(
@@ -68,7 +73,7 @@ class HeatLand(Land):
         self._debugger.log_saved_images()
         return result
 
-    @Debugger.method_decorator('Negating a heat (p -> 1-p)', ['HeatLand.__neg__', 'HeatLand'])
+    @Debugger.method_decorator('Negating a heat (p -> 1-p)')
     def __neg__(self):
         self._debugger.save_image(
             self._flow_data, 'Before', Debugger.LogTypes.HEAT)
@@ -81,7 +86,7 @@ class HeatLand(Land):
         )
         return result
 
-    @Debugger.method_decorator('Multiplying a number to a heats', ['HeatLand.__rmul__', 'HeatLand'])
+    @Debugger.method_decorator('Multiplying a number to a heats')
     def __rmul__(self, other):
         if not isinstance(other, int) and not isinstance(other, float):
             self._debugger.log_exception(
@@ -89,7 +94,7 @@ class HeatLand(Land):
 
         return HeatLand(np.maximum(np.minimum(other*self._flow_data, 1), 0), self._debugger)
 
-    @Debugger.method_decorator('Powerring a heat to a number', ['HeatLand.__pow__', 'HeatLand'])
+    @Debugger.method_decorator('Powerring a heat to a number')
     def __pow__(self, other):
         if not isinstance(other, int) and not isinstance(other, float):
             self._debugger.log_exception(
@@ -97,7 +102,7 @@ class HeatLand(Land):
 
         return HeatLand(np.maximum(np.minimum(self._flow_data**other, 1), 0), self._debugger)
 
-    @Debugger.method_decorator('Rotating heat', ['HeatLand.rotate', 'HeatLand'])
+    @Debugger.method_decorator('Rotating heat')
     def rotate(self, angle: float, center: Tuple = None, save_trace = False, fill_color=0):
         height, width = self._flow_data.shape[:2]
         if center == None:
@@ -125,7 +130,7 @@ class HeatLand(Land):
 
         return self
 
-    @Debugger.static_method_decorator('Rotating back heat', ['HeatLand.__rotate_back', 'HeatLand'])
+    @Debugger.static_method_decorator('Rotating back heat')
     def __rotate_back(heat, pars: Dict, debugger: Debugger):
         debugger.log('(angle, center) = ({}, {})'
                      .format(-pars['angle'], pars['center']))
@@ -145,7 +150,7 @@ class HeatLand(Land):
 
         return heat
 
-    @Debugger.method_decorator('Reshaping heat', ['HeatLand.reshape', 'HeatLand'])
+    @Debugger.method_decorator('Reshaping heat')
     def reshape(self, shape, save_trace = False):
         width, height = shape[1], shape[0]
         self._debugger.log('(w, h) = ({}, {})'.format(
@@ -170,7 +175,7 @@ class HeatLand(Land):
 
         return self
 
-    @Debugger.static_method_decorator('Reshaping back heat', ['HeatLand.__reshape_back', 'HeatLand'])
+    @Debugger.static_method_decorator('Reshaping back heat')
     def __reshape_back(heat, pars: Dict, debugger: Debugger):
         debugger.log('(w, h) = ({}, {})'.format(pars['width'], pars['height']))
 
@@ -185,7 +190,7 @@ class HeatLand(Land):
 
         return heat
 
-    @ Debugger.method_decorator('Zooming in heat', ['HeatLand.zoom', 'HeatLand'])
+    @ Debugger.method_decorator('Zooming in heat')
     def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace = False, fill_heat=0):
         if save_trace:
             self._make_trace(HeatLand.__zoom_back, {'last_heat': self._flow_data.copy(),
@@ -229,7 +234,7 @@ class HeatLand(Land):
 
         return self
 
-    @Debugger.static_method_decorator('Zooming back heat', ['HeatLand.__zoom_back', 'HeatLand'])
+    @Debugger.static_method_decorator('Zooming back heat')
     def __zoom_back(heat, pars: Dict, debugger: Debugger):
         last_heat = pars['last_heat']
         quadrilateral = pars['quadrilateral']

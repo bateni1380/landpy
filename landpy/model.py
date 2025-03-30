@@ -28,6 +28,10 @@ class Model(ABC):
     def _load_model(self):
         pass
     
+    @abstractmethod
+    def inference(self):
+        pass
+    
     @staticmethod
     def __validate_format(model_format, debugger: Debugger):
         if model_format not in ['h5', 'tflite']:
@@ -70,25 +74,8 @@ class Model(ABC):
             self._debugger.log_exception(
                 f"Failed to download model from {self.github_url}. Status code: {response.status_code}")
 
-    # def __load_model(self):
-    #     if self.model_format == 'h5':
-    #         return load_tf(self.model_path, self._debugger)
-    #     elif  self.model_format == 'tflite':
-    #         return load_tflite(self.model_path, self._debugger)
 
-    # @Debugger.method_decorator('Inferencing by model', ['Model.inference', 'Model'])
-    # def inference(self, input):
-    #     if self.input_type is not None and type(input) is not self.input_type:
-    #         self._debugger.log_exception(
-    #             "inference input type must be " + str(self.input_type), self._debugger.get_last_log_categories())
-
-    #     if self.model_format == 'h5':
-    #         return inference_by_tf(self._interpreter, input, self._debugger)
-    #     elif  self.model_format == 'tflite':
-    #         return inference_by_tflite(self._interpreter, input, self._debugger)
-
-
-# Example usage
+# TODO: Remove main
 if __name__ == "__main__":
     # Replace with your actual GitHub raw URL
     model_url = "https://github.com/bateni1380/fine_tuned_models/raw/refs/heads/main/model_files/face_landmark.tflite"

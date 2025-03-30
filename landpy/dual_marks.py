@@ -11,7 +11,7 @@ class DualMarks(MarksLand):
             
         DualMarks.set_marks(self, start_point, end_point, debugger)
 
-    @Debugger.method_decorator('Setting DualMarks', ['DualMarks.set_marks', 'DualMarks'])
+    @Debugger.method_decorator('Setting DualMarks')
     def set_marks(self, start_point, end_point, debugger: Debugger = Debugger(debug=False)):
         if type(start_point) is MarksLand:
             if start_point._flow_data[0].shape != (1, 2):
@@ -25,7 +25,7 @@ class DualMarks(MarksLand):
         MarksLand.set_marks(self, [start_point, end_point])
         return self
 
-    @Debugger.method_decorator('Showing marks', ['DualMarks.show', 'DualMarks'])
+    @Debugger.method_decorator('Showing marks')
     def show(self):
         Debugger(visual_debug=True).log_image(
             self._flow_data, '', Debugger.LogTypes.VECTOR)

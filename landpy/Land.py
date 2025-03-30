@@ -22,16 +22,16 @@ class Land:
     def set_debugger(self, debugger):
         self._debugger = debugger
 
-    @Debugger.method_decorator('Setting flow_data', ['Land._set_data', 'Land'])
+    @Debugger.method_decorator('Setting flow_data')
     def _set_data(self, data: Any):
         self._flow_data = data
         return self
 
-    @Debugger.method_decorator('Returning flow_data', ['Land._get_data', 'Land'])
+    @Debugger.method_decorator('Returning flow_data')
     def _get_data(self):
         return self._flow_data
 
-    @Debugger.method_decorator('Copying Land', ['Land.copy', 'Land'])
+    @Debugger.method_decorator('Copying Land')
     def copy(self, copy_trace=False, copy_type=None):
         if copy_trace == False:
             self._debugger.log_warning(
@@ -57,11 +57,11 @@ class Land:
             copied_land._flow_data = flow_data
         return copied_land
 
-    @Debugger.method_decorator('Making trace', ['Land._make_trace', 'Land'])
+    @Debugger.method_decorator('Making trace')
     def _make_trace(self,  inv_fun: Callable, pars: Dict):
         self.__trace.append({'inv_fun': inv_fun, 'pars': pars})
 
-    @Debugger.method_decorator('Retracing land', ['Land.retrace', 'Land'])
+    @Debugger.method_decorator('Retracing land')
     def retrace(self):
         if len(self.__trace) == 0:
             self._debugger.log_exception('Trace list is empty!')
@@ -71,7 +71,7 @@ class Land:
         self._flow_data = inv_fun(self._flow_data, pars, self._debugger)
         return self
 
-    @Debugger.static_method_decorator('Copying the whole trace', ['Land.__copy_trace', 'Land'])
+    @Debugger.static_method_decorator('Copying the whole trace')
     def __copy_trace(trace, flow_data, copy_trace=True, debugger=Debugger(debug=False)):
         copied_trace = []
         if copy_trace:
@@ -88,7 +88,7 @@ class Land:
         flow_data = flow_data.copy() if hasattr(flow_data, 'copy') else flow_data
         return {'trace': copied_trace, 'flow_data': flow_data}
 
-    @Debugger.method_decorator('Making checkpoint', ['Land.make_checkpoint', 'Land'])
+    @Debugger.method_decorator('Making checkpoint')
     def make_checkpoint(self):
         self._debugger.log('version {}'.format(
             self.__checkpoint_version+1))
@@ -102,7 +102,7 @@ class Land:
             self.__trace, self._flow_data, debugger=self._debugger))
         self.__checkpoint_version += 1
 
-    @Debugger.method_decorator('Undoing Land', ['Land.undo', 'Land'])
+    @Debugger.method_decorator('Undoing Land')
     def undo(self):
         self.__trace = self.__checkpoint_history[self.__checkpoint_version]['trace']
         self._flow_data = self.__checkpoint_history[self.__checkpoint_version]['flow_data']
@@ -110,7 +110,7 @@ class Land:
         self._debugger.log('undoed to version {}!'.format(
             self.__checkpoint_version))
 
-    @Debugger.method_decorator('Redoing Land', ['Land.redo', 'Land'])
+    @Debugger.method_decorator('Redoing Land')
     def redo(self):
         self.__checkpoint_version += 1
         self.__trace = self.__checkpoint_history[self.__checkpoint_version]['trace']
@@ -118,17 +118,17 @@ class Land:
         self._debugger.log('redoed to version {}!'.format(
             self.__checkpoint_version))
 
-    @Debugger.method_decorator('Clearing trace', ['Land.clear_trace', 'Land'])
+    @Debugger.method_decorator('Clearing trace')
     def clear_trace(self):
         self.make_checkpoint()
         self.__trace = []
 
-    @Debugger.method_decorator('Clearing checkpoint history', ['Land.clear_checkpoint_history', 'Land'])
+    @Debugger.method_decorator('Clearing checkpoint history')
     def clear_checkpoint_history(self):
         del self.__checkpoint_history
         self.__checkpoint_history = []
         self.__checkpoint_version = -1
 
-    @Debugger.method_decorator('Getting i\'th item of land', ['Land.__getitem__', 'Land'])
+    @Debugger.method_decorator('Getting i\'th item of land')
     def __getitem__(self, ind):
         return self._flow_data[ind]

@@ -6,9 +6,16 @@ import matplotlib.pylab as plt
 from PIL import Image, ImageDraw, ImageOps
 import cv2
 
-
-# TODO ratio must be added and changed in all of project ( for rotating and stuf)
+class MarksSet:
+    def __init(self, marks: np.ndarray, shape: Tuple):
+        self.marks = marks
+        self.shape = shape
+    
+    def __getitem__(self, index):
+        return self.marks[index]
+    
 class MarksLand(Land):
+    _flow_data: MarksSet
     def __init__(self, x=None, y=None, shape=None, debugger: Debugger = Debugger(debug=False)):
         super().__init__(debugger=debugger)
         
@@ -22,13 +29,13 @@ class MarksLand(Land):
             MarksLand.set_marks(self, x, y, shape=shape)
 
         
-    @Debugger.method_decorator('Getting shape', ['MarksLand.shape', 'MarksLand'])
+    @property
     def shape(self):
         if self._flow_data is None:
             return None
-        return self._flow_data[1]
+        return self._flow_data.shape
     
-    @Debugger.method_decorator('Setting marks', ['MarksLand.set_marks', 'MarksLand'])
+    @Debugger.method_decorator('Setting marks')
     def set_marks(self, x, y=None, shape=None):
         if shape is None:
             shape = self.shape()
@@ -42,7 +49,7 @@ class MarksLand(Land):
             self._flow_data, "Set marks", Debugger.LogTypes.SCATTER)
         return self
 
-    @Debugger.method_decorator('Reshaping marks', ['MarksLand.reshape', 'MarksLand'])
+    @Debugger.method_decorator('Reshaping marks')
     def reshape(self, shape):
         self._flow_data[0][:, 0] = np.array(
             (self._flow_data[0][:, 0]/self._flow_data[1][0])*shape[0])
@@ -51,7 +58,7 @@ class MarksLand(Land):
         self._flow_data[1] = shape
         return self
 
-    @Debugger.static_method_decorator('Converting to (n,2) matrix', ['MarksLand.__x_to_flow_data', 'MarksLand'])
+    @Debugger.static_method_decorator('Converting to (n,2) matrix')
     def __x_to_flow_data(x, debugger):
         marks = np.array(x)
         if len(marks.shape) == 1:
@@ -61,7 +68,7 @@ class MarksLand(Land):
             marks = marks.reshape((1, -1))
         return marks
 
-    @Debugger.static_method_decorator('Converting to (n,2) matrix', ['MarksLand.__xy_to_flow_data', 'MarksLand'])
+    @Debugger.static_method_decorator('Converting to (n,2) matrix')
     def __xy_to_flow_data(x, y, debugger):
         if type(x) not in [list, tuple, np.ndarray] or type(y) not in [list, tuple, np.ndarray]:
             debugger.log_exception(
@@ -77,7 +84,7 @@ class MarksLand(Land):
         marks = np.hstack([x, y])
         return marks
 
-    @Debugger.method_decorator('Getting marks', ['MarksLand.get_marks', 'MarksLand'])
+    @Debugger.method_decorator('Getting marks')
     def get_marks(self):
         super()._get_data()
 
@@ -86,7 +93,7 @@ class MarksLand(Land):
         Debugger(visual_debug=True).log_image(self._flow_data, '', Debugger.LogTypes.SCATTER)
         return self
 
-    @Debugger.method_decorator('Rotating marks', ['MarksLand.rotate', 'MarksLand'])
+    @Debugger.method_decorator('Rotating marks')
     def rotate(self, angle: float, center: Tuple = None, save_trace=False):
         if center is None:
             center = (0.5, 0.5)
@@ -114,7 +121,7 @@ class MarksLand(Land):
         self._debugger.log_saved_images()
         return self
 
-    @Debugger.static_method_decorator('Rotating back marks', ['MarksLand.__rotate_back', 'MarksLand'])
+    @Debugger.static_method_decorator('Rotating back marks')
     def __rotate_back(marks, pars: Dict, debugger: Debugger):
         angle, center = pars['angle'], pars['center']
         height, width = np.max(marks[:, 0])-np.min(
@@ -140,7 +147,7 @@ class MarksLand(Land):
         debugger.log_saved_images()
         return rotated_points
 
-    @Debugger.method_decorator('Zooming marks', ['MarksLand.zoom', 'MarksLand'])
+    @Debugger.method_decorator('Zooming marks')
     def zoom(self, quadrilateral=None, zoom_factor=None, center=None, save_trace=False):
         from landpy import QuadMarks, SquareMarks
 
@@ -167,7 +174,7 @@ class MarksLand(Land):
         self._debugger.log_saved_images()
         return self
 
-    @Debugger.static_method_decorator('Zooming back marks', ['MarksLand.__zoom_back', 'MarksLand'])
+    @Debugger.static_method_decorator('Zooming back marks')
     def __zoom_back(marksland, pars: Dict, debugger: Debugger):
         from landpy import QuadMarks, SquareMarks
         quadrilateral = pars['quadrilateral']
@@ -187,7 +194,7 @@ class MarksLand(Land):
         debugger.log_saved_images()
         return marksland
 
-    @Debugger.method_decorator('Moving marks', ['MarksLand.move', 'MarksLand'])
+    @Debugger.method_decorator('Moving marks')
     def move(self, vector, save_trace=False):
         if save_trace:
             self._make_trace(MarksLand.__move_back, {'vector': vector})
@@ -203,7 +210,7 @@ class MarksLand(Land):
         self._debugger.log_saved_images()
         return self
 
-    @Debugger.static_method_decorator('Moving back marks', ['MarksLand.__move_back', 'MarksLand'])
+    @Debugger.static_method_decorator('Moving back marks')
     def __move_back(marksland, pars: Dict, debugger: Debugger):
         debugger.save_image(marksland, 'Marks before moving back',
                             Debugger.LogTypes.SCATTER)
@@ -217,7 +224,7 @@ class MarksLand(Land):
 
         return marksland
 
-    @Debugger.method_decorator('Adding two marks (append marks togetter)', ['MarksLand.__add__', 'MarksLand'])
+    @Debugger.method_decorator('Adding two marks (append marks togetter)')
     def __add__(self, other: 'MarksLand'):
         if self.shape() != other.shape():
                 self._debugger.log_warning(
@@ -243,7 +250,7 @@ class MarksLand(Land):
         self._debugger.log_saved_images()
         return result
 
-    @Debugger.method_decorator('Substracting two marks (remove marks of second object from the first one)', ['MarksLand.__sub__', 'MarksLand'])
+    @Debugger.method_decorator('Substracting two marks (remove marks of second object from the first one)')
     def __sub__(self, other):
         if self.shape() != other.shape():
                 self._debugger.log_warning(
@@ -269,7 +276,7 @@ class MarksLand(Land):
         self._debugger.log_saved_images()
         return result
 
-    @Debugger.method_decorator('Getting indices of the object', ['MarksLand.__getitem__', 'MarksLand'])
+    @Debugger.method_decorator('Getting indices of the object')
     def __getitem__(self, index):
         return MarksLand(self._flow_data[0][index], shape=self.shape(), debugger=self._debugger)
 
@@ -294,7 +301,7 @@ class MarksLand(Land):
         self._debugger.log_saved_images()
         return heat
 
-    @Debugger.method_decorator('Converting MarksLand to SquareMarks', ['MarksLand.to_square', 'MarksLand'])
+    @Debugger.method_decorator('Converting MarksLand to SquareMarks')
     def to_square(self):
         self._debugger.save_image(
             self._flow_data, 'Before', Debugger.LogTypes.SCATTER)

@@ -2,7 +2,6 @@ from typing import Callable, List, Tuple, Dict, Literal, Any, Iterable, Union
 import time
 from landpy import Debugger, Land
 from landpy import MarksLand, QuadMarks, SquareMarks, DualMarks, HeatLand, Filter
-from landpy.heat import zero_heat, full_heat
 import numpy as np
 import cv2
 import inspect
@@ -20,7 +19,7 @@ class ImageLand(Land):
         elif image is not None:
             ImageLand.set_image(self, image)
 
-    @Debugger.method_decorator('Setting image', ['ImageLand.set_data', 'ImageLand'])
+    @Debugger.method_decorator('Setting image')
     def set_image(self, image: np.ndarray):
         if type(image) is Image:
             image = np.array(image)
@@ -38,13 +37,13 @@ class ImageLand(Land):
             self.mode = 'RGBA'
         return self
 
-    @Debugger.method_decorator('Copying image', ['ImageLand.copy', 'ImageLand'])
+    @Debugger.method_decorator('Copying image')
     def copy(self, copy_trace=False):
         copied_self = Land.copy(self, copy_trace)
         copied_self.mode = self.mode
         return copied_self
 
-    @Debugger.method_decorator('Changing mode to rgba', ['ImageLand.to_rgba', 'ImageLand'])
+    @Debugger.method_decorator('Changing mode to rgba')
     def to_rgba(self):
         if self.mode == 'RGBA':
             self._debugger.log_warning('Its already an rgba image!')
@@ -55,7 +54,7 @@ class ImageLand(Land):
         self.mode = 'RGBA'
         return self
 
-    @Debugger.method_decorator('Changing mode to rgb', ['ImageLand.to_rgb', 'ImageLand'])
+    @Debugger.method_decorator('Changing mode to rgb')
     def to_rgb(self):
         if self.mode == 'RGB':
             self._debugger.log_warning('Its already an rgb image!')
@@ -66,16 +65,16 @@ class ImageLand(Land):
         self.mode = 'RGB'
         return self
 
-    @Debugger.method_decorator('Returning image!', ['ImageLand.get_image', 'ImageLand'])
+    @Debugger.method_decorator('Returning image!')
     def get_image(self):
         return self._get_data()
 
-    @Debugger.method_decorator('Showing the image', ['ImageLand.show', 'ImageLand'])
+    @Debugger.method_decorator('Showing the image')
     def show(self, desc=''):
         Debugger(visual_debug=True).log_image(self._flow_data, desc=desc)
         return self
 
-    @Debugger.method_decorator('Rotating image', ['ImageLand.rotate', 'ImageLand'])
+    @Debugger.method_decorator('Rotating image')
     def rotate(self, angle: float, center: Tuple = None, save_trace=False, fill_color=(0, 0, 0)):
         height, width = self._flow_data.shape[:2]
         if center == None:
@@ -103,7 +102,7 @@ class ImageLand(Land):
 
         return self
 
-    @Debugger.static_method_decorator('Rotating back image', ['ImageLand.__rotate_back', 'ImageLand'])
+    @Debugger.static_method_decorator('Rotating back image')
     def __rotate_back(image, pars: Dict, debugger: Debugger):
         debugger.log('(angle, center) = ({}, {})'
                      .format(-pars['angle'], pars['center']), )
@@ -124,7 +123,7 @@ class ImageLand(Land):
 
         return image
 
-    @Debugger.method_decorator('Reshaping image', ['ImageLand.reshape', 'ImageLand'])
+    @Debugger.method_decorator('Reshaping image')
     def reshape(self, shape, mode='RGB', save_trace=False):
         width, height = shape[1], shape[0]
         self._debugger.log('(w, h, mode) = ({}, {}, {})'.format(
@@ -151,7 +150,7 @@ class ImageLand(Land):
 
         return self
 
-    @Debugger.static_method_decorator('Reshaping back image', ['ImageLand.__reshape_back', 'ImageLand'])
+    @Debugger.static_method_decorator('Reshaping back image')
     def __reshape_back(image, pars: Dict, debugger: Debugger):
         debugger.log('(w, h, mode) = ({}, {}, {})'.format(
             pars['width'], pars['height'], pars['mode']), )
@@ -170,7 +169,7 @@ class ImageLand(Land):
 
         return image
 
-    @Debugger.method_decorator('Zooming in image', ['ImageLand.zoom', 'ImageLand'])
+    @Debugger.method_decorator('Zooming in image')
     def zoom(self, quadrilateral=None, zoom_factor=None, center=None, save_trace=False, fill_color=(0, 0, 0)):
         if quadrilateral is None:
             quadrilateral = SquareMarks(shape=self._flow_data.shape[:2], zoom_factor=zoom_factor, center=center)
@@ -216,7 +215,7 @@ class ImageLand(Land):
 
         return self
 
-    @Debugger.static_method_decorator('Zooming back image', ['ImageLand.__zoom_back', 'ImageLand'])
+    @Debugger.static_method_decorator('Zooming back image')
     def __zoom_back(image, pars: Dict, debugger: Debugger):
         last_image = pars['last_image']
         quadrilateral = pars['quadrilateral']
@@ -252,7 +251,7 @@ class ImageLand(Land):
 
         return last_image
 
-    @Debugger.method_decorator('Applying histogram equalization method on the image', ['ImageLand.histogram_equalization', 'ImageLand'])
+    @Debugger.method_decorator('Applying histogram equalization method on the image')
     def equalize_histogram(self, save_trace=False):
         lab_image = cv2.cvtColor(self._flow_data, cv2.COLOR_RGB2Lab)
         l_channel, a_channel, b_channel = cv2.split(lab_image)
@@ -275,7 +274,7 @@ class ImageLand(Land):
 
         return self
 
-    @Debugger.static_method_decorator('Applying inverse of histogram equalization method on the image', ['ImageLand.__equalizatie_histogram_back', 'ImageLand'])
+    @Debugger.static_method_decorator('Applying inverse of histogram equalization method on the image')
     def __equalize_histogram_back(image, pars: Dict, debugger: Debugger):
         last_l_channel = pars['last_l_channel']
         if last_l_channel.shape != image.shape[:2]:
@@ -293,14 +292,13 @@ class ImageLand(Land):
 
         return back_image
 
-    @Debugger.method_decorator('implanting filter in image', ['ImageLand.implant_filter', 'ImageLand'])
+    @Debugger.method_decorator('implanting filter in image')
     def implant_filter(self, filter: Filter, heat: HeatLand = None):
         ImageLand.__save_plot(self, 'base', self._debugger)
         ImageLand.__save_plot(heat, 'heat', self._debugger)
 
         if heat is None:
-            heat = full_heat(
-                self._flow_data.shape[0], self._flow_data.shape[1], self._debugger)
+            heat = HeatLand(shape=self._flow_data.shape, fill_value=1, debugger=self._debugger)
         if heat._flow_data.shape != self._flow_data.shape[:2]:
             self._debugger.log_warning(
                 "Heat and Image weren\'t in the same size so heat is going to reshape!")
@@ -316,7 +314,7 @@ class ImageLand(Land):
 
         return self
 
-    @Debugger.method_decorator('implanting image in image', ['ImageLand.implant_image', 'ImageLand'])
+    @Debugger.method_decorator('implanting image in image')
     def implant_image(self, plant_img: np.ndarray, src_land: SquareMarks = None, plant_land: SquareMarks = None, ratio=0.5):
         ImageLand.__save_plot(self, 'base', self._debugger)
         
@@ -373,7 +371,7 @@ class ImageLand(Land):
     ADDED_LINES_COLOR = (255,255,0)
     ADDED_VECTORS_WIDTH = 1
     ADDED_VECTORS_COLOR = (255,255,255)
-    @Debugger.method_decorator('Adding an image to another object (image or heat or marks)', ['ImageLand.__add', 'ImageLand'])
+    @Debugger.method_decorator('Adding an image to another object (image or heat or marks)')
     def __add(self, object2):
         object1_c = self.copy(copy_trace=True)
         object2_c = object2.copy(copy_trace=False)
@@ -426,7 +424,7 @@ class ImageLand(Land):
 
         return object1_c
 
-    @Debugger.method_decorator('Adding an image to another object (image or heat or marks)', ['ImageLand.__add__', 'ImageLand'])
+    @Debugger.method_decorator('Adding an image to another object (image or heat or marks)')
     def __add__(self, other):
         ImageLand.__save_plot(
             self, 'Left', self._debugger)
@@ -439,7 +437,7 @@ class ImageLand(Land):
         self._debugger.log_saved_images()
         return result
 
-    @Debugger.method_decorator('Adding an image to another object (image or heat or marks)', ['ImageLand.__radd__', 'ImageLand'])
+    @Debugger.method_decorator('Adding an image to another object (image or heat or marks)')
     def __radd__(self, other):
         ImageLand.__save_plot(
             other, 'Left', self._debugger)

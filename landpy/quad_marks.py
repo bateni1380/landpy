@@ -7,14 +7,14 @@ class QuadMarks(MarksLand):
         if x1 is not None and x2 is not None and x3 is not None and x4 is not None:
             QuadMarks.set_marks(self, x1, x2, x3, x4)
 
-    @Debugger.static_method_decorator('Sorting points clockwise', ['QuadMarks.sort_points_clockwise', 'QuadMarks'])
+    @Debugger.static_method_decorator('Sorting points clockwise')
     def __sort_points_clockwise(points, debugger = Debugger(debug=False)):
         centroid = np.mean(points, axis=0)
         angles = np.arctan2(points[:, 1] - centroid[1], points[:, 0] - centroid[0])
         sorted_points = points[np.argsort(angles)]
         return sorted_points
 
-    @Debugger.method_decorator('Setting QuadMarks', ['QuadMarks.__init__', 'QuadMarks'])
+    @Debugger.method_decorator('Setting QuadMarks')
     def set_marks(self, x1, x2, x3, x4):
         if (len(x1), len(x2), len(x3), len(x4)) != (2, 2, 2, 2):
             self._debugger.log_exception('xi must have two elements!')
@@ -28,9 +28,9 @@ class QuadMarks(MarksLand):
         super().set_marks(marks)
         return self
     
-    @Debugger.method_decorator('Getting center of QuadMarks (intersection of diagonals)', ['QuadMarks.center', 'QuadMarks'])
+    @Debugger.method_decorator('Getting center of QuadMarks (intersection of diagonals)')
     def center(self):
-        p1, p2, p3, p4 = self._flow_data[0][0], self._flow_data[0][1], self._flow_data[0][2], self._flow_data[0][3]
+        p1, p2, p3, p4 = self._flow_data[0], self._flow_data[1], self._flow_data[2], self._flow_data[3]
         a1, b1 = p2 - p1
         a2, b2 = p4 - p3
         
@@ -43,6 +43,6 @@ class QuadMarks(MarksLand):
         try:
             intersection_point = np.linalg.solve(A, B)
         except np.linalg.LinAlgError:
-            return self._flow_data[0].mean(axis=0)
+            return self._flow_data[:].mean(axis=0)
         
         return intersection_point.tolist()

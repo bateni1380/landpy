@@ -32,7 +32,7 @@ class SquareMarks(QuadMarks):
 
         SquareMarks.set_marks(self, minX, maxX, minY, maxY, shape=shape)
 
-    
+    @Debugger.static_method_decorator('Finding relative positions')
     def relative(minX=None, maxX=None, minY=None, maxY=None, shape=None, zoom_factor=None, center=None, debugger: Debugger = Debugger(debug=False)):
         if shape is None:
             debugger.log_exception('You need to specify  shape!')
@@ -58,7 +58,7 @@ class SquareMarks(QuadMarks):
         sm = SquareMarks(shape=shape).set_marks(int(minX*shape[0]), int(maxX*shape[0]), int(minY*shape[1]), int(maxY*shape[1]), shape=shape)
         return sm
         
-    @Debugger.method_decorator('Setting SquareMarks', ['SquareMarks.set_marks', 'SquareMarks'])
+    @Debugger.method_decorator('Setting SquareMarks')
     def set_marks(self, minX, maxX, minY, maxY, shape=None):
         if shape is None:
             shape = self.shape()
@@ -72,18 +72,18 @@ class SquareMarks(QuadMarks):
         MarksLand.set_marks(self, x, y, shape=shape)
         return self
 
-    @Debugger.method_decorator('Enlarging or shrinking the square. ', ['SquareMarks.expand', 'SquareMarks'])
+    @Debugger.method_decorator('Enlarging or shrinking the square')
     def expand(self, value):
         minX, maxX, minY, maxY = self.minX(), self.maxX(), self.minY(), self.maxY()
         lenX = (maxX-minX)*(value-1)/2
         lenY = (maxY-minY)*(value-1)/2
         return self.set_marks(minX-lenX, maxX+lenX, minY-lenY, maxY+lenY, shape=self.shape())
         
-    @Debugger.method_decorator('Rotating marks', ['SquareMarks.rotate', 'SquareMarks'])
+    @Debugger.method_decorator('Rotating marks')
     def rotate(self, angle: float, center = None, save_trace=False):
         self._debugger.log_exception('You can\'t rotate SquareMarks (use object.to_quad())')
     
-    @Debugger.method_decorator('Converting to QuadMarks', ['SquareMarks.to_quad', 'SquareMarks'])
+    @Debugger.method_decorator('Converting to QuadMarks')
     def to_quad(self, copy_trace=False):
         return self.copy(copy_trace, copy_type=QuadMarks)
         

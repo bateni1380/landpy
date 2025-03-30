@@ -328,12 +328,11 @@ class Debugger:
                 bound_args.arguments[param_name] = param.default
         return bound_args
 
-    METHOD_INFO = 0
-    def method_decorator(desc: str, log_categories: Union[List, int]=0):
+    def method_decorator(desc: str, log_categories: Union[List, int]=None):
         def dec_wrapper(func):
             def func_wrapper(self, *func_args, **func_kargs):
                 local_log_categories = log_categories
-                if local_log_categories==Debugger.METHOD_INFO:
+                if local_log_categories is None:
                     local_log_categories = Debugger.__calculate_log_categories_from_func_name(func)
                     
                 bound_args = Debugger.__modify_method_args(
@@ -351,9 +350,13 @@ class Debugger:
             return func_wrapper
         return dec_wrapper
 
-    def static_method_decorator(desc: str, log_categories: List):
+    def static_method_decorator(desc: str, log_categories: Union[List, int]=None):
         def dec_wrapper(func):
             def func_wrapper(*func_args, **func_kargs):
+                local_log_categories = log_categories
+                if local_log_categories is None:
+                    local_log_categories = Debugger.__calculate_log_categories_from_func_name(func)
+                    
                 bound_args = Debugger.__modify_static_method_args(
                     func, func_args, func_kargs)
 
@@ -365,7 +368,7 @@ class Debugger:
                 else:
                     raise Exception(
                         'static_method_decorator expects a debugger object as last parameter.')
-                debugger.append_last_log_categories(log_categories)
+                debugger.append_last_log_categories(local_log_categories)
                 debugger.log_start(
                     desc, categories=debugger.get_last_log_categories())
                 result = func(**bound_args.arguments)
