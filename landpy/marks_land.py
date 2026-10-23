@@ -1,318 +1,173 @@
-from landpy import Debugger, Land
-from typing import Callable, List, Tuple, Dict, Literal, Any, Iterable, Union
+"""Landmarks in pixel (row, column) coordinates."""
 
-import numpy as np
-import matplotlib.pylab as plt
-from PIL import Image, ImageDraw, ImageOps
 import cv2
+import numpy as np
 
-class MarksSet:
-    def __init(self, marks: np.ndarray, shape: Tuple):
-        self.marks = marks
-        self.shape = shape
-    
-    def __getitem__(self, index):
-        return self.marks[index]
-    
+from ._geometry import crop_geometry, rotation, shape2, transform_points
+from .debugger import Debugger
+from .land import Land
+
+
 class MarksLand(Land):
-    _flow_data: MarksSet
-    def __init__(self, x=None, y=None, shape=None, debugger: Debugger = Debugger(debug=False)):
-        super().__init__(debugger=debugger)
-        
-        if x is None and y is None and shape is None:
-            return
-        
-        if shape is None:
-            debugger.log_warning('You need to specify  shape!')
+    """A floating point (N, 2) point set on a (height, width) canvas.
 
+    ``x`` contains points or row coordinates; optional ``y`` contains columns.
+    Empty construction is allowed; set data and shape before transforming.
+    """
+
+    def __init__(self, x=None, y=None, shape=None, debugger=None):
+        super().__init__(debugger)
+        self._flow_data = [
+            np.empty((0, 2), dtype=float),
+            shape2(shape) if shape is not None else None,
+        ]
         if x is not None:
-            MarksLand.set_marks(self, x, y, shape=shape)
+            MarksLand.set_marks(self, x, y, shape)
 
-        
     @property
     def shape(self):
-        if self._flow_data is None:
-            return None
-        return self._flow_data.shape
-    
-    @Debugger.method_decorator('Setting marks')
+        """Canvas dimensions as (height, width), or None if unset."""
+        return self._flow_data[1]
+
+    @Debugger.method_decorator("MarksLand.set_marks")
     def set_marks(self, x, y=None, shape=None):
-        if shape is None:
-            shape = self.shape()
-            
-        if y is None:
-            marks = MarksLand.__x_to_flow_data(x, self._debugger)
+        """Replace points and optionally canvas shape; copy caller data."""
+        if y is not None:
+            x, y = np.asarray(x), np.asarray(y)
+            if x.shape != y.shape:
+                raise ValueError("Row and column arrays must have equal shapes.")
+            points = np.column_stack((x.ravel(), y.ravel()))
         else:
-            marks = MarksLand.__xy_to_flow_data(x, y, self._debugger)
-        super()._set_data([marks, shape])
-        self._debugger.log_image(
-            self._flow_data, "Set marks", Debugger.LogTypes.SCATTER)
-        return self
+            points = np.asarray(x, dtype=float)
+            if points.size == 0:
+                points = np.empty((0, 2))
+            elif points.shape == (2,):
+                points = points.reshape(1, 2)
+        if points.ndim != 2 or points.shape[1] != 2 or not np.isfinite(points).all():
+            raise ValueError("marks must be a finite (N, 2) array.")
+        return self._set_data(
+            [
+                np.array(points, dtype=float, copy=True),
+                shape2(shape) if shape is not None else self.shape,
+            ]
+        )
 
-    @Debugger.method_decorator('Reshaping marks')
-    def reshape(self, shape):
-        self._flow_data[0][:, 0] = np.array(
-            (self._flow_data[0][:, 0]/self._flow_data[1][0])*shape[0])
-        self._flow_data[0][:, 1] = np.array(
-            (self._flow_data[0][:, 1]/self._flow_data[1][1])*shape[1])
-        self._flow_data[1] = shape
-        return self
-
-    @Debugger.static_method_decorator('Converting to (n,2) matrix')
-    def __x_to_flow_data(x, debugger):
-        marks = np.array(x)
-        if len(marks.shape) == 1:
-            if marks.shape[0] != 2:
-                debugger.log_exception(
-                    'x must be a (n,2) matrice or vector of 2!')
-            marks = marks.reshape((1, -1))
-        return marks
-
-    @Debugger.static_method_decorator('Converting to (n,2) matrix')
-    def __xy_to_flow_data(x, y, debugger):
-        if type(x) not in [list, tuple, np.ndarray] or type(y) not in [list, tuple, np.ndarray]:
-            debugger.log_exception(
-                'x and y must be list\\tuple\\ndarray!')
-
-        x, y = np.array(x), np.array(y)
-        if x.shape != y.shape:
-            debugger.log_exception(
-                'x and y must have equal size!')
-
-        x = np.array(x).reshape(-1, 1)
-        y = np.array(y).reshape(-1, 1)
-        marks = np.hstack([x, y])
-        return marks
-
-    @Debugger.method_decorator('Getting marks')
+    @Debugger.method_decorator("MarksLand.get_marks")
     def get_marks(self):
-        super()._get_data()
+        """Return the mutable (N, 2) point array."""
+        return self._flow_data[0]
 
-    @Debugger.method_decorator('Showing marks', ['MarksLand.show', 'MarksLand'])
-    def show(self):
-        Debugger(visual_debug=True).log_image(self._flow_data, '', Debugger.LogTypes.SCATTER)
-        return self
+    @Debugger.method_decorator("MarksLand.reshape")
+    def reshape(self, shape, save_trace=False):
+        """Scale points to a new canvas, optionally recording its inverse."""
+        old, new = shape2(self.shape), shape2(shape)
+        matrix = np.diag([new[1] / old[1], new[0] / old[0], 1.0])
+        return self._transform(matrix, new, save_trace)
 
-    @Debugger.method_decorator('Rotating marks')
-    def rotate(self, angle: float, center: Tuple = None, save_trace=False):
-        if center is None:
-            center = (0.5, 0.5)
-        rotation_matrix = cv2.getRotationMatrix2D(
-            center=center, angle=-angle, scale=1)
-
-        self._debugger.log('(angle, center) = ({}, {})'.format(
-            angle, center))
-
-        self._debugger.save_image(self._flow_data, 'Marks before rotation',
-                                  Debugger.LogTypes.SCATTER)
-
-        n = self._flow_data[0].shape[0]
-        homog_points = np.hstack((self._flow_data[0], np.ones((n, 1))))
-        rotated_points = np.dot(rotation_matrix, homog_points.T).T[:, :2]
-        self._flow_data[0] = rotated_points
-
-        self._debugger.save_image(
-            self._flow_data, 'Marks after rotation', Debugger.LogTypes.SCATTER)
-
+    def _transform(self, matrix, shape, save_trace):
+        old_shape = self.shape
+        points = self.get_marks()
+        result = transform_points(points, matrix) if len(points) else points.copy()
         if save_trace:
-            self._make_trace(MarksLand.__rotate_back, {
-                             'angle': angle, 'center': center})
-
-        self._debugger.log_saved_images()
+            self._make_trace(
+                MarksLand._inverse, {"matrix": np.linalg.inv(matrix), "shape": old_shape}
+            )
+        self._flow_data = [result, shape]
+        self._redo.clear()
         return self
 
-    @Debugger.static_method_decorator('Rotating back marks')
-    def __rotate_back(marks, pars: Dict, debugger: Debugger):
-        angle, center = pars['angle'], pars['center']
-        height, width = np.max(marks[:, 0])-np.min(
-            marks[:, 0]), np.max(marks[:, 1])-np.min(marks[:, 1])
-        if center is None:
-            center = (int(width/2), int(height/2))
+    @staticmethod
+    def _inverse(data, parameters, debugger):
+        points = transform_points(data[0], parameters["matrix"]) if len(data[0]) else data[0].copy()
+        return [points, parameters["shape"]]
 
-        debugger.log('(angle, center) = ({}, {})'.format(
-            angle, center))
+    @Debugger.method_decorator("Rotating marks")
+    def rotate(self, angle, center=None, save_trace=False):
+        """Rotate counterclockwise in degrees about a (row, column) center."""
+        matrix = np.vstack((rotation(self.shape, angle, center), [0.0, 0.0, 1.0]))
+        return self._transform(matrix, self.shape, save_trace)
 
-        rotation_matrix = cv2.getRotationMatrix2D(
-            center=center, angle=angle, scale=1)
-
-        debugger.save_image(
-            marks, 'Marks before rotation back', Debugger.LogTypes.SCATTER)
-
-        n = marks.shape[0]
-        homog_points = np.hstack((marks, np.ones((n, 1))))
-        rotated_points = np.dot(rotation_matrix, homog_points.T).T[:, :2]
-
-        debugger.save_image(
-            rotated_points, 'Marks after rotation back', Debugger.LogTypes.SCATTER)
-        debugger.log_saved_images()
-        return rotated_points
-
-    @Debugger.method_decorator('Zooming marks')
-    def zoom(self, quadrilateral=None, zoom_factor=None, center=None, save_trace=False):
-        from landpy import QuadMarks, SquareMarks
-
-        if quadrilateral is None:
-            quadrilateral = SquareMarks(
-                shape=self.shape(), zoom_factor=zoom_factor, center=center)
-
-        if save_trace:
-            self._make_trace(MarksLand.__zoom_back, {
-                             'quadrilateral': quadrilateral.copy(save_trace), 'shape':self.shape()})
-
-        self._debugger.save_image(
-            self._flow_data, 'Marks before zoom', Debugger.LogTypes.SCATTER)
-        if type(quadrilateral) is SquareMarks:
-            self._flow_data[0][:, 0] = (self._flow_data[0][:, 0]-quadrilateral.minX())
-            self._flow_data[0][:, 1] = (self._flow_data[0][:, 1]-quadrilateral.minY())
-            self._flow_data[1] = quadrilateral._flow_data[1]
-        elif type(quadrilateral) is QuadMarks:
-            self._debugger.log_exception(
-                "Zooming in MarksLand using QuadMarks is not supported yet!")
-
-        self._debugger.save_image(
-            self._flow_data, 'Marks after zoom', Debugger.LogTypes.SCATTER)
-        self._debugger.log_saved_images()
-        return self
-
-    @Debugger.static_method_decorator('Zooming back marks')
-    def __zoom_back(marksland, pars: Dict, debugger: Debugger):
-        from landpy import QuadMarks, SquareMarks
-        quadrilateral = pars['quadrilateral']
-
-        debugger.save_image(
-            marksland, 'Marks before zoom back', Debugger.LogTypes.SCATTER)
-        if type(quadrilateral) is SquareMarks:
-            marksland[0][:, 0] = marksland[0][:, 0]+quadrilateral.minX()
-            marksland[0][:, 1] = marksland[0][:, 1]+quadrilateral.minY()
-            marksland[1] = pars['shape']
-        elif type(quadrilateral) is QuadMarks:
-            debugger.log_exception(
-                "Zooming back in MarksLand using QuadMarks is not supported yet!")
-
-        debugger.save_image(
-            marksland, 'Marks after zoom back', Debugger.LogTypes.SCATTER)
-        debugger.log_saved_images()
-        return marksland
-
-    @Debugger.method_decorator('Moving marks')
+    @Debugger.method_decorator("MarksLand.move")
     def move(self, vector, save_trace=False):
-        if save_trace:
-            self._make_trace(MarksLand.__move_back, {'vector': vector})
+        """Translate by a (row, column) vector, optionally recording inverse."""
+        vector = np.asarray(vector, dtype=float)
+        if vector.shape != (2,) or not np.isfinite(vector).all():
+            raise ValueError("vector must contain two finite values.")
+        matrix = np.array([[1.0, 0.0, vector[1]], [0.0, 1.0, vector[0]], [0.0, 0.0, 1.0]])
+        return self._transform(matrix, self.shape, save_trace)
 
-        self._debugger.save_image(
-            self._flow_data, 'Marks before moving', Debugger.LogTypes.SCATTER)
+    @Debugger.method_decorator("MarksLand.zoom")
+    def zoom(self, quadrilateral=None, zoom_factor=None, center=None, save_trace=False):
+        """Map points into a rectangular or perspective crop's coordinates."""
+        if quadrilateral is None:
+            from .square_marks import SquareMarks
 
-        self._flow_data[0][:, 0] += vector[0]
-        self._flow_data[0][:, 1] += vector[1]
+            quadrilateral = SquareMarks(shape=self.shape, zoom_factor=zoom_factor, center=center)
+        matrix, shape = crop_geometry(quadrilateral)
+        return self._transform(matrix, shape, save_trace)
 
-        self._debugger.save_image(
-            self._flow_data, 'Marks after moving', Debugger.LogTypes.SCATTER)
-        self._debugger.log_saved_images()
-        return self
+    def _aligned(self, other):
+        if not isinstance(other, MarksLand):
+            raise TypeError("Expected another MarksLand.")
+        if self.shape != other.shape:
+            return other.copy().reshape(self.shape)
+        return other
 
-    @Debugger.static_method_decorator('Moving back marks')
-    def __move_back(marksland, pars: Dict, debugger: Debugger):
-        debugger.save_image(marksland, 'Marks before moving back',
-                            Debugger.LogTypes.SCATTER)
+    @Debugger.method_decorator("MarksLand.__add__")
+    def __add__(self, other):
+        """Return a stable point union; align a copy of the other canvas."""
+        if not isinstance(other, MarksLand):
+            return NotImplemented
+        other = self._aligned(other)
+        points = list(dict.fromkeys(map(tuple, np.vstack((self.get_marks(), other.get_marks())))))
+        return MarksLand(points, shape=self.shape, debugger=self._debugger)
 
-        marksland[0][:, 0] -= pars['vector'][0]
-        marksland[0][:, 1] -= pars['vector'][1]
-
-        debugger.save_image(marksland, 'Marks after moving back',
-                            Debugger.LogTypes.SCATTER)
-        debugger.log_saved_images()
-
-        return marksland
-
-    @Debugger.method_decorator('Adding two marks (append marks togetter)')
-    def __add__(self, other: 'MarksLand'):
-        if self.shape() != other.shape():
-                self._debugger.log_warning(
-                    "The markslands weren\'t in the same size so the second marksland is going to reshape!")
-                other.reshape(self.shape())
-                
-        self._debugger.save_image(
-            self._flow_data, 'Left', Debugger.LogTypes.SCATTER)
-        self._debugger.save_image(
-            other._flow_data, 'Right', Debugger.LogTypes.SCATTER)
-        
-        marks_set = set({})
-        for i in range(self._flow_data[0].shape[0]):
-            marks_set.add((self._flow_data[0][i, 0], self._flow_data[0][i, 1]))
-        for i in range(other._flow_data[0].shape[0]):
-            marks_set.add((other._flow_data[0][i, 0], other._flow_data[0][i, 1]))
-
-        result = MarksLand(self._debugger)
-        result.set_marks(list(marks_set), shape=max(self.shape(), other.shape()))
-
-        self._debugger.save_image(
-            result._flow_data, 'Result', Debugger.LogTypes.SCATTER)
-        self._debugger.log_saved_images()
-        return result
-
-    @Debugger.method_decorator('Substracting two marks (remove marks of second object from the first one)')
+    @Debugger.method_decorator("MarksLand.__sub__")
     def __sub__(self, other):
-        if self.shape() != other.shape():
-                self._debugger.log_warning(
-                    "The markslands weren\'t in the same size so the second marksland is going to reshape!")
-                other.reshape(self.shape())
-                
-        self._debugger.save_image(
-            self._flow_data, 'Left', Debugger.LogTypes.SCATTER)
-        self._debugger.save_image(
-            other._flow_data, 'Right', Debugger.LogTypes.SCATTER)
-        marks_set = set({})
-        for i in range(self._flow_data[0].shape[0]):
-            marks_set.add((self._flow_data[0][i, 0], self._flow_data[0][i, 1]))
-        for i in range(other._flow_data[0].shape[0]):
-            if (other._flow_data[0][i, 0], other._flow_data[0][i, 1]) in marks_set:
-                marks_set.remove(
-                    (other._flow_data[0][i, 0], other._flow_data[0][i, 1]))
+        """Return points absent from the other set without mutating operands."""
+        other = self._aligned(other)
+        excluded = set(map(tuple, other.get_marks()))
+        return MarksLand(
+            [p for p in self.get_marks() if tuple(p) not in excluded],
+            shape=self.shape,
+            debugger=self._debugger,
+        )
 
-        result = MarksLand(self._debugger)
-        result.set_marks(list(marks_set))
-        self._debugger.save_image(
-            result._flow_data, 'Result', Debugger.LogTypes.SCATTER)
-        self._debugger.log_saved_images()
-        return result
-
-    @Debugger.method_decorator('Getting indices of the object')
     def __getitem__(self, index):
-        return MarksLand(self._flow_data[0][index], shape=self.shape(), debugger=self._debugger)
+        """Return selected points as a MarksLand, including scalar selection."""
+        return MarksLand(self.get_marks()[index], shape=self.shape, debugger=self._debugger)
 
-    @Debugger.method_decorator('Converting marks object to a python list', ['MarksLand.to_list', 'MarksLand'])
+    @Debugger.method_decorator("MarksLand.to_list")
     def to_list(self):
-        return ((self._flow_data[0]).tolist(), self._flow_data[1])
+        """Return (list of points, canvas shape)."""
+        return self.get_marks().tolist(), self.shape
 
-    @Debugger.method_decorator('Converting marks object to a landpy heat', ['MarksLand.to_heat', 'MarksLand'])
+    @Debugger.method_decorator("MarksLand.to_heat")
     def to_heat(self, fill_heat=1):
-        self._debugger.save_image(
-            self._flow_data, 'Before', Debugger.LogTypes.SCATTER)
+        """Fill the point polygon with a value in [0, 1] on its canvas."""
+        from .heat_land import HeatLand
 
-        from landpy import HeatLand
-        heat_p = np.zeros(self.shape())
-        pts = self._flow_data[0].copy()
-        pts = pts.astype(int).reshape((-1, 1, 2))
-        cv2.fillPoly(heat_p, pts=[pts], color=(fill_heat))
-        heat = HeatLand(heat_p, self._debugger)
+        if not np.isfinite(fill_heat) or not 0 <= fill_heat <= 1:
+            raise ValueError("fill_heat must be in [0, 1].")
+        heat = np.zeros(shape2(self.shape), dtype=np.float32)
+        if len(self.get_marks()):
+            cv2.fillPoly(
+                heat, [np.rint(self.get_marks()[:, ::-1]).astype(np.int32)], float(fill_heat)
+            )
+        return HeatLand(heat, debugger=self._debugger)
 
-        self._debugger.save_image(
-            heat._flow_data, 'After', Debugger.LogTypes.SCATTER)
-        self._debugger.log_saved_images()
-        return heat
-
-    @Debugger.method_decorator('Converting MarksLand to SquareMarks')
+    @Debugger.method_decorator("MarksLand.to_square")
     def to_square(self):
-        self._debugger.save_image(
-            self._flow_data, 'Before', Debugger.LogTypes.SCATTER)
+        """Return the axis-aligned bounding rectangle; reject an empty set."""
+        from .square_marks import SquareMarks
 
-        from landpy import SquareMarks
-        sm = SquareMarks(self.shape(), self._debugger).set_marks(minX=np.min(self._flow_data[0][:, 0]),
-                                                                 maxX=np.max(self._flow_data[0][:, 0]),
-                                                                 minY=np.min(self._flow_data[0][:, 1]),
-                                                                 maxY=np.max(self._flow_data[0][:, 1]))
+        if len(self.get_marks()) == 0:
+            raise ValueError("Cannot bound an empty point set.")
+        low, high = self.get_marks().min(axis=0), self.get_marks().max(axis=0)
+        return SquareMarks(low[0], high[0], low[1], high[1], self.shape, debugger=self._debugger)
 
-        self._debugger.save_image(
-            sm._flow_data, 'After', Debugger.LogTypes.SCATTER)
-        self._debugger.log_saved_images()
-        return sm
+    @Debugger.method_decorator("MarksLand.show")
+    def show(self):
+        """Plot the point set on its canvas and return this object."""
+        Debugger(visual_debug=True).log_image(self._flow_data, type=Debugger.LogTypes.SCATTER)
+        return self

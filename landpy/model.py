@@ -1,83 +1,88 @@
-from landpy import ImageLand, Debugger
-from abc import ABC, abstractmethod
-import tensorflow as tf
+"""Lazy model loading with local paths and atomic cached downloads."""
+
+import hashlib
 import os
+import tempfile
+from abc import ABC, abstractmethod
+from pathlib import Path
+from urllib.parse import urlparse
+
 import requests
 
-from landpy.pretrained_models.config import DOWNLOAD_DIR
+from .debugger import Debugger
 
 
 class Model(ABC):
-    def __init__(self, model_url=None, input_type=None, output_type=None, debugger: Debugger = Debugger(debug=False)):
-        self._debugger: Debugger = debugger
-        self.input_type = input_type
-        self.output_type = output_type
-        self.__model_url = model_url
+    """Load a local or HTTPS .h5/.keras/.tflite model on explicit construction.
 
-        self.model_name = os.path.basename(model_url)
-        self.model_format = self.__model_url.split('.')[-1].lower()
+    Downloads are cached beneath ``LANDPY_MODEL_DIR`` or ~/.cache/landpy/models.
+    Pass ``model_path`` to work offline; ``sha256`` verifies model provenance.
+    TensorFlow is optional and imported by concrete loaders only.
+    """
 
-        self.__validate_format(self.model_format, debugger)
-
-        self.model_path = os.path.join(DOWNLOAD_DIR, f"{self.model_name}")
-
-        self.__download_model_if_not_exist()
+    def __init__(
+        self,
+        model_url=None,
+        input_type=None,
+        output_type=None,
+        debugger=None,
+        *,
+        model_path=None,
+        cache_dir=None,
+        sha256=None,
+    ):
+        self._debugger = debugger if debugger is not None else Debugger(debug=False)
+        self.input_type, self.output_type = input_type, output_type
+        self.model_url = model_url
+        if model_path is not None:
+            path = Path(model_path).expanduser()
+            if not path.is_file():
+                raise FileNotFoundError(path)
+        else:
+            if not model_url or urlparse(model_url).scheme != "https":
+                raise ValueError("Provide an HTTPS model_url or an existing model_path.")
+            name = Path(urlparse(model_url).path).name
+            identity = hashlib.sha256(model_url.encode()).hexdigest()[:16]
+            directory = Path(
+                cache_dir or os.environ.get("LANDPY_MODEL_DIR", "~/.cache/landpy/models")
+            ).expanduser()
+            path = directory / identity / name
+        self.model_path = str(path)
+        self.model_name, self.model_format = path.name, path.suffix.lower().lstrip(".")
+        if self.model_format not in ("h5", "keras", "tflite"):
+            raise ValueError("Model format must be h5, keras or tflite.")
+        if not path.exists():
+            self._download_model()
+        if sha256 and hashlib.sha256(path.read_bytes()).hexdigest() != sha256.lower():
+            raise ValueError(f"Model checksum mismatch: {path}")
         self._interpreter = self._load_model()
+
+    def _download_model(self):
+        path = Path(self.model_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = None
+        try:
+            with requests.get(self.model_url, stream=True, timeout=(10, 120)) as response:
+                response.raise_for_status()
+                with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as output:
+                    temporary = Path(output.name)
+                    for chunk in response.iter_content(8192):
+                        output.write(chunk)
+            if temporary.stat().st_size == 0:
+                raise ValueError("Downloaded model is empty.")
+            temporary.replace(path)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+
+    def _validate_input(self, data):
+        if self.input_type is not None and not isinstance(data, self.input_type):
+            raise TypeError(f"Input must be {self.input_type}.")
 
     @abstractmethod
     def _load_model(self):
-        pass
-    
+        """Return the backend model or interpreter."""
+
     @abstractmethod
-    def inference(self):
-        pass
-    
-    @staticmethod
-    def __validate_format(model_format, debugger: Debugger):
-        if model_format not in ['h5', 'tflite']:
-            debugger.log_exception('Model type must be h5 or tflite!', [
-                                   'Model.__init__', 'Model'])
-
-    def __download_model_if_not_exist(self):
-        os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
-
-        if not os.path.exists(self.model_path):
-            self._debugger.log(
-                f"{self.model_name} not found. Downloading from { self.__model_url}")
-            self._download_model()
-        else:
-            self._debugger.log(
-                f"{self.model_name} found at {self.model_path}.")
-
-    @Debugger.method_decorator('Downloading model')
-    def _download_model(self):
-        response = requests.get(self.__model_url, stream=True)
-        if response.status_code == 200:
-            total_size = int(response.headers.get('content-length', 0))
-            downloaded_size = 0
-
-            with open(self.model_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded_size += len(chunk)
-                        if total_size > 0:
-                            percentage = (downloaded_size / total_size) * 100
-                            self._debugger.log(
-                                f"Downloading {self.model_name}: {percentage:.2f}%", end="\r")
-                        else:
-                            self._debugger.log(
-                                f"Downloading {self.model_name}: {downloaded_size} bytes", end="\r")
-
-            self._debugger.log(f"{self.model_name} downloaded to {self.model_path}.")
-        else:
-            self._debugger.log_exception(
-                f"Failed to download model from {self.github_url}. Status code: {response.status_code}")
-
-
-# TODO: Remove main
-if __name__ == "__main__":
-    # Replace with your actual GitHub raw URL
-    model_url = "https://github.com/bateni1380/fine_tuned_models/raw/refs/heads/main/model_files/face_landmark.tflite"
-    model = Model(model_url)
-    print("Model loaded successfully.")
+    def inference(self, input):
+        """Run inference on one model input."""

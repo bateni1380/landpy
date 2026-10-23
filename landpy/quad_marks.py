@@ -1,48 +1,44 @@
-from landpy import Debugger, MarksLand
+"""Four-point regions for perspective transformations."""
+
+import cv2
 import numpy as np
 
+from .debugger import Debugger
+from .marks_land import MarksLand
+
+
 class QuadMarks(MarksLand):
-    def __init__(self, x1=None, x2=None, x3=None, x4=None, shape=None, debugger: Debugger = Debugger(debug=False)):
+    """A convex quadrilateral, ordered top-left then clockwise in image space."""
+
+    def __init__(self, x1=None, x2=None, x3=None, x4=None, shape=None, debugger=None):
         super().__init__(shape=shape, debugger=debugger)
-        if x1 is not None and x2 is not None and x3 is not None and x4 is not None:
-            QuadMarks.set_marks(self, x1, x2, x3, x4)
+        points = [x1, x2, x3, x4]
+        if any(p is not None for p in points):
+            if any(p is None for p in points):
+                raise ValueError("Provide all four corners.")
+            QuadMarks.set_marks(self, *points)
 
-    @Debugger.static_method_decorator('Sorting points clockwise')
-    def __sort_points_clockwise(points, debugger = Debugger(debug=False)):
-        centroid = np.mean(points, axis=0)
-        angles = np.arctan2(points[:, 1] - centroid[1], points[:, 0] - centroid[0])
-        sorted_points = points[np.argsort(angles)]
-        return sorted_points
-
-    @Debugger.method_decorator('Setting QuadMarks')
+    @Debugger.method_decorator("QuadMarks.set_marks")
     def set_marks(self, x1, x2, x3, x4):
-        if (len(x1), len(x2), len(x3), len(x4)) != (2, 2, 2, 2):
-            self._debugger.log_exception('xi must have two elements!')
+        """Validate and order four distinct convex corners."""
+        points = np.asarray([x1, x2, x3, x4], dtype=float)
+        if points.shape != (4, 2) or not np.isfinite(points).all():
+            raise ValueError("Four finite (row, column) points are required.")
+        center = points.mean(axis=0)
+        angles = np.arctan2(points[:, 0] - center[0], points[:, 1] - center[1])
+        points = points[np.argsort(angles)]
+        points = np.roll(points, -np.argmin(points.sum(axis=1)), axis=0)
+        if (
+            not cv2.isContourConvex(points[:, ::-1].astype(np.float32))
+            or abs(cv2.contourArea(points.astype(np.float32))) < 1e-8
+        ):
+            raise ValueError("Corners must form a nondegenerate convex quadrilateral.")
+        return MarksLand.set_marks(self, points)
 
-        x = np.array([x1[0], x2[0], x3[0], x4[0]]).reshape(-1,1)
-        y = np.array([x1[1], x2[1], x3[1], x4[1]]).reshape(-1,1)
-        marks = np.hstack([x, y])
-        
-        marks = QuadMarks.__sort_points_clockwise(marks, debugger=Debugger(debug=False))
-        
-        super().set_marks(marks)
-        return self
-    
-    @Debugger.method_decorator('Getting center of QuadMarks (intersection of diagonals)')
+    @Debugger.method_decorator("QuadMarks.center")
     def center(self):
-        p1, p2, p3, p4 = self._flow_data[0], self._flow_data[1], self._flow_data[2], self._flow_data[3]
-        a1, b1 = p2 - p1
-        a2, b2 = p4 - p3
-        
-        c1 = a1 * p1[0] + b1 * p1[1]
-        c2 = a2 * p3[0] + b2 * p3[1]
-        
-        A = np.array([[a1, b1], [a2, b2]])
-        B = np.array([c1, c2])
-        
-        try:
-            intersection_point = np.linalg.solve(A, B)
-        except np.linalg.LinAlgError:
-            return self._flow_data[:].mean(axis=0)
-        
-        return intersection_point.tolist()
+        """Return the intersection of the two diagonals in pixel coordinates."""
+        p = self.get_marks()
+        coefficients = np.column_stack((p[2] - p[0], -(p[3] - p[1])))
+        t = np.linalg.solve(coefficients, p[1] - p[0])[0]
+        return (p[0] + t * (p[2] - p[0])).tolist()

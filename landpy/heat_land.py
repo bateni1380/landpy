@@ -1,265 +1,142 @@
-from typing import Callable, List, Tuple, Dict, Literal, Any, Iterable, Union
-from landpy import Debugger, Land
+"""Floating-point masks and their geometric transforms."""
+
 import cv2
-import math
 import numpy as np
-from PIL import Image
-from landpy import QuadMarks, SquareMarks, Filter
+
+from ._geometry import crop_geometry, inverse_warp, rotation, shape2
+from .debugger import Debugger
+from .land import Land
 
 
 class HeatLand(Land):
-    def __init__(self, heat_data: np.ndarray=None, shape: Tuple=None, fill_value: float=None, debugger: Debugger = Debugger(debug=False)):
+    """A finite 2D heat map with values in [0, 1].
+
+    Addition is pixelwise maximum, subtraction is pixelwise minimum (the
+    original intersection convention), negation is complement. Multiplication
+    and powers clip their results to [0, 1]. Binary maps require equal shapes.
+    """
+
+    def __init__(self, heat_data=None, shape=None, fill_value=0.0, debugger=None):
         super().__init__(debugger)
         if heat_data is not None:
-            HeatLand.set_heat(self, heat_data)
+            self.set_heat(heat_data)
         elif shape is not None:
-            if fill_value is None:
-                fill_value = 0.0
-            heat_data = np.ones(shape=shape)*fill_value
-            HeatLand.set_heat(self, heat_data)
+            self.set_heat(np.full(shape2(shape), fill_value, dtype=np.float32))
 
-    @Debugger.method_decorator('Setting heat')
-    def set_heat(self, heat: np.ndarray):
-        heat = np.array(heat)
-        if len(heat.shape) != 2:
-            self._debugger.log_exception('heat must be a 2darray!')
+    @property
+    def shape(self):
+        """Heat map dimensions, or None before data is set."""
+        return None if self._flow_data is None else self._flow_data.shape
 
-        self._debugger.log_image(heat, 'Set Heat', Debugger.LogTypes.HEAT,
-                                 )
+    @Debugger.method_decorator("HeatLand.set_heat")
+    def set_heat(self, heat):
+        """Copy a nonempty finite 2D array with values in [0, 1]."""
+        heat = np.asarray(heat, dtype=np.float32)
+        if (
+            heat.ndim != 2
+            or not heat.size
+            or not np.isfinite(heat).all()
+            or np.any((heat < 0) | (heat > 1))
+        ):
+            raise ValueError("heat must be a nonempty finite 2D array in [0, 1].")
+        return self._set_data(heat.copy())
 
-        super()._set_data(heat)
+    @Debugger.method_decorator("HeatLand.get_heat")
+    def get_heat(self):
+        """Return the mutable heat array."""
+        return self._flow_data
 
-        return self
+    def _combine(self, other, function):
+        if not isinstance(other, HeatLand):
+            return NotImplemented
+        if self.shape != other.shape:
+            raise ValueError("Heat maps must have equal shapes; reshape explicitly.")
+        return HeatLand(function(self._flow_data, other._flow_data), debugger=self._debugger)
 
-    @Debugger.method_decorator('Showing the heat')
-    def show(self):
-        Debugger(visual_debug=True).log_image(
-            self._flow_data, '', Debugger.LogTypes.HEAT)
-        return self
-
-    @Debugger.method_decorator('Adding two heats (maximums in each place)')
+    @Debugger.method_decorator("HeatLand.__add__")
     def __add__(self, other):
-        if not isinstance(other, HeatLand):
-            self._debugger.log_exception(
-                "Unsupported operand type for *: {} and MyClass".format(type(other)))
-        self._debugger.save_image(
-            self._flow_data, 'Left', Debugger.LogTypes.HEAT)
-        self._debugger.save_image(
-            other._flow_data, 'Right', Debugger.LogTypes.HEAT)
+        """Return pixelwise union (maximum)."""
+        return self._combine(other, np.maximum)
 
-        result = HeatLand(np.maximum(
-            self._flow_data, other._flow_data), self._debugger)
-
-        self._debugger.save_image(
-            result._flow_data, 'Result', Debugger.LogTypes.HEAT)
-        self._debugger.log_saved_images()
-        return result
-
-    @Debugger.method_decorator('Substracting two heats (minimums in each place)')
+    @Debugger.method_decorator("HeatLand.__sub__")
     def __sub__(self, other):
-        if not isinstance(other, HeatLand):
-            self._debugger.log_exception(
-                "Unsupported operand type for *: {} and MyClass".format(type(other)))
-        self._debugger.save_image(
-            self._flow_data, 'Left', Debugger.LogTypes.HEAT)
-        self._debugger.save_image(
-            other._flow_data, 'Right', Debugger.LogTypes.HEAT)
+        """Return pixelwise intersection (minimum), not arithmetic difference."""
+        return self._combine(other, np.minimum)
 
-        result = HeatLand(np.minimum(
-            self._flow_data, other._flow_data), self._debugger)
-
-        self._debugger.save_image(
-            result._flow_data, 'Result', Debugger.LogTypes.HEAT)
-        self._debugger.log_saved_images()
-        return result
-
-    @Debugger.method_decorator('Negating a heat (p -> 1-p)')
+    @Debugger.method_decorator("HeatLand.__neg__")
     def __neg__(self):
-        self._debugger.save_image(
-            self._flow_data, 'Before', Debugger.LogTypes.HEAT)
+        """Return complement (1 - heat)."""
+        return HeatLand(1 - self._flow_data, debugger=self._debugger)
 
-        result = HeatLand(1-self._flow_data, self._debugger)
+    @Debugger.method_decorator("HeatLand.__mul__")
+    def __mul__(self, other):
+        """Scale heat by a finite scalar and clip to [0, 1]."""
+        if not np.isscalar(other) or not np.isfinite(other):
+            raise ValueError("Multiplier must be a finite scalar.")
+        return HeatLand(np.clip(other * self._flow_data, 0, 1), debugger=self._debugger)
 
-        self._debugger.save_image(
-            result._flow_data, 'After', Debugger.LogTypes.HEAT)
-        self._debugger.log_saved_images(
-        )
-        return result
+    __rmul__ = __mul__
 
-    @Debugger.method_decorator('Multiplying a number to a heats')
-    def __rmul__(self, other):
-        if not isinstance(other, int) and not isinstance(other, float):
-            self._debugger.log_exception(
-                "Unsupported operand type for *: {} and MyClass".format(type(other)))
-
-        return HeatLand(np.maximum(np.minimum(other*self._flow_data, 1), 0), self._debugger)
-
-    @Debugger.method_decorator('Powerring a heat to a number')
+    @Debugger.method_decorator("HeatLand.__pow__")
     def __pow__(self, other):
-        if not isinstance(other, int) and not isinstance(other, float):
-            self._debugger.log_exception(
-                "Unsupported operand type for *: {} and MyClass".format(type(other)))
+        """Raise heat to a finite nonnegative power."""
+        if not np.isscalar(other) or not np.isfinite(other) or other < 0:
+            raise ValueError("Exponent must be finite and nonnegative.")
+        return HeatLand(self._flow_data**other, debugger=self._debugger)
 
-        return HeatLand(np.maximum(np.minimum(self._flow_data**other, 1), 0), self._debugger)
-
-    @Debugger.method_decorator('Rotating heat')
-    def rotate(self, angle: float, center: Tuple = None, save_trace = False, fill_color=0):
-        height, width = self._flow_data.shape[:2]
-        if center == None:
-            center = (int(width/2), int(height/2))
-
-        self._debugger.log('(angle, center) = ({}, {})'.format(
-            angle, center), )
-
-        rotation_matrix = cv2.getRotationMatrix2D(
-            center=center, angle=angle, scale=1)
-
-        self._debugger.save_image(
-            self._flow_data, 'Heat before rotation', Debugger.LogTypes.HEAT, )
-        self._flow_data = cv2.warpAffine(src=self._flow_data, M=rotation_matrix, dsize=(
-            width, height), borderMode=cv2.BORDER_CONSTANT, borderValue=fill_color)
-        self._debugger.save_image(
-            self._flow_data, 'Heat after rotation', Debugger.LogTypes.HEAT, )
-
+    @Debugger.method_decorator("Rotating heat")
+    def rotate(self, angle, center=None, save_trace=False, fill_color=0):
+        """Rotate counterclockwise about a pixel (row, column) center."""
+        if not 0 <= fill_color <= 1:
+            raise ValueError("fill_color must be in [0, 1].")
+        matrix = rotation(self.shape, angle, center)
+        h, w = self.shape
+        result = cv2.warpAffine(self._flow_data, matrix, (w, h), borderValue=float(fill_color))
         if save_trace:
-            self._make_trace(HeatLand.__rotate_back, {
-                             'angle': angle, 'center': center})
+            self._make_trace(
+                HeatLand._rotate_back,
+                {"matrix": cv2.invertAffineTransform(matrix), "shape": self.shape},
+            )
+        return self._set_data(result)
 
-        self._debugger.log_saved_images(
-        )
+    @staticmethod
+    def _rotate_back(data, parameters, debugger):
+        h, w = parameters["shape"]
+        return cv2.warpAffine(data, parameters["matrix"], (w, h))
 
-        return self
-
-    @Debugger.static_method_decorator('Rotating back heat')
-    def __rotate_back(heat, pars: Dict, debugger: Debugger):
-        debugger.log('(angle, center) = ({}, {})'
-                     .format(-pars['angle'], pars['center']))
-
-        height, width = heat.shape[:2]
-        rotation_matrix = cv2.getRotationMatrix2D(
-            center=pars['center'], angle=-pars['angle'], scale=1)
-
-        debugger.save_image(
-            image, 'Heat before rotation back', Debugger.LogTypes.HEAT)
-        image = cv2.warpAffine(src=image, M=rotation_matrix, dsize=(
-            width, height), borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
-        debugger.save_image(
-            image, 'Heat after rotation back', Debugger.LogTypes.HEAT)
-
-        debugger.log_saved_images()
-
-        return heat
-
-    @Debugger.method_decorator('Reshaping heat')
-    def reshape(self, shape, save_trace = False):
-        width, height = shape[1], shape[0]
-        self._debugger.log('(w, h) = ({}, {})'.format(
-            width, height), )
-
-        heat = Image.fromarray((self._flow_data*255).astype('uint8'))
-
+    @Debugger.method_decorator("HeatLand.reshape")
+    def reshape(self, shape, save_trace=False):
+        """Resize without quantizing to 8-bit; inverse resizing is approximate."""
+        h, w = shape2(shape)
+        result = cv2.resize(self._flow_data, (w, h), interpolation=cv2.INTER_LINEAR)
         if save_trace:
-            self._make_trace(HeatLand.__reshape_back, {'width': heat.width,
-                                                       'height': heat.height})
+            self._make_trace(HeatLand._resize_back, {"shape": self.shape})
+        return self._set_data(result)
 
-        self._debugger.save_image(
-            self._flow_data, 'Heat before reshape', Debugger.LogTypes.HEAT, )
-        heat = heat.resize((width, height))
-        heat = np.array(heat, dtype='float32')/255
-        self.set_heat(heat)
-        self._debugger.save_image(
-            self._flow_data, 'Heat after reshape', Debugger.LogTypes.HEAT, )
+    @staticmethod
+    def _resize_back(data, parameters, debugger):
+        h, w = parameters["shape"]
+        return cv2.resize(data, (w, h), interpolation=cv2.INTER_LINEAR)
 
-        self._debugger.log_saved_images(
-        )
+    @Debugger.method_decorator("HeatLand.zoom")
+    def zoom(
+        self, quadrilateral=None, save_trace=False, fill_heat=0, zoom_factor=None, center=None
+    ):
+        """Crop/pad a rectangle or rectify a quad; retrace pastes edits back."""
+        from .square_marks import SquareMarks
 
-        return self
-
-    @Debugger.static_method_decorator('Reshaping back heat')
-    def __reshape_back(heat, pars: Dict, debugger: Debugger):
-        debugger.log('(w, h) = ({}, {})'.format(pars['width'], pars['height']))
-
-        debugger.save_image(heat, 'Heat before reshape',
-                            Debugger.LogTypes.HEAT)
-        heat = Image.fromarray((heat*255).astype('uint8'))
-        heat = heat.resize((pars['width'], pars['height']))
-        heat = np.array(heat, dtype='float32')/255
-        debugger.save_image(heat, 'Heat after reshape', Debugger.LogTypes.HEAT)
-
-        debugger.log_saved_images()
-
-        return heat
-
-    @ Debugger.method_decorator('Zooming in heat')
-    def zoom(self, quadrilateral: Union[QuadMarks, SquareMarks], save_trace = False, fill_heat=0):
+        if quadrilateral is None:
+            quadrilateral = SquareMarks(shape=self.shape, zoom_factor=zoom_factor, center=center)
+        if not np.isfinite(fill_heat) or not 0 <= fill_heat <= 1:
+            raise ValueError("fill_heat must be in [0, 1].")
+        matrix, (h, w) = crop_geometry(quadrilateral)
+        result = cv2.warpPerspective(self._flow_data, matrix, (w, h), borderValue=float(fill_heat))
         if save_trace:
-            self._make_trace(HeatLand.__zoom_back, {'last_heat': self._flow_data.copy(),
-                                                    'quadrilateral': quadrilateral.copy(save_trace=False)})
+            self._make_trace(inverse_warp, {"original": self._flow_data, "matrix": matrix})
+        return self._set_data(result)
 
-        self._debugger.save_image(self._flow_data, 'Heat before zoom', Debugger.LogTypes.HEAT,
-                                  )
-
-        if type(quadrilateral) is SquareMarks:
-            minX = math.floor(quadrilateral.minX() * self._flow_data.shape[0])
-            maxX = math.ceil(quadrilateral.maxX() * self._flow_data.shape[0])
-            minY = math.floor(quadrilateral.minY() * self._flow_data.shape[1])
-            maxY = math.ceil(quadrilateral.maxY() * self._flow_data.shape[1])
-            if minX >= 0 and maxX <= self._flow_data.shape[0] and minY >= 0 and maxY <= self._flow_data.shape[1]:
-                self._flow_data = self._flow_data[minX:maxX, minY:maxY]
-            else:
-                def genX(x):
-                    return np.ones([x, self._flow_data.shape[1]], dtype='float32')*fill_heat
-                self._flow_data = np.vstack(
-                    [genX(max(0, -minX)), self._flow_data, genX(max(0, maxX-self._flow_data.shape[0]))])
-
-                def genY(x):
-                    return np.ones([self._flow_data.shape[0], x], dtype='float32')*fill_heat
-                self._flow_data = np.hstack(
-                    [genY(max(0, -minY)), self._flow_data, genY(max(0, maxY-self._flow_data.shape[1]))])
-
-                x_len = maxX+max(0, -minX)
-                y_len = maxY+max(0, -minY)
-
-                self._flow_data = self._flow_data[max(0, minX):max(
-                    0, minX)+x_len, max(0, minY):max(0, minY)+y_len].astype('float32')
-
-        elif type(quadrilateral) is QuadMarks:
-            self._debugger.log_exception(
-                "Zooming in image using QuadMarks is not supported yet!")
-
-        self._debugger.save_image(
-            self._flow_data, 'Image after zoom', Debugger.LogTypes.HEAT)
-
-        self._debugger.log_saved_images()
-
+    @Debugger.method_decorator("HeatLand.show")
+    def show(self):
+        """Plot the heat map with a fixed [0, 1] color scale."""
+        Debugger(visual_debug=True).log_image(self._flow_data, type=Debugger.LogTypes.HEAT)
         return self
-
-    @Debugger.static_method_decorator('Zooming back heat')
-    def __zoom_back(heat, pars: Dict, debugger: Debugger):
-        last_heat = pars['last_heat']
-        quadrilateral = pars['quadrilateral']
-
-        debugger.save_image(heat, 'Heat before zoom back',
-                            Debugger.LogTypes.HEAT)
-        if type(quadrilateral) is SquareMarks:
-            minX = math.floor(quadrilateral.minX() * last_heat.shape[0])
-            maxX = math.ceil(quadrilateral.maxX() * last_heat.shape[0])
-            minY = math.floor(quadrilateral.minY() * last_heat.shape[1])
-            maxY = math.ceil(quadrilateral.maxY() * last_heat.shape[1])
-
-            x_len = min(maxX, last_heat.shape[0])-max(0, minX)
-            y_len = min(maxY, last_heat.shape[1])-max(0, minY)
-
-            last_heat[max(0, minX):max(0, minX)+x_len, max(0, minY):max(0, minY) +
-                      y_len] = heat[max(0, -minX):max(0, -minX)+x_len, max(0, -minY):max(0, -minY)+y_len]
-
-        elif type(quadrilateral) is QuadMarks:
-            debugger.log_exception(
-                "Zooming back in heat using QuadMarks is not supported yet!")
-
-        debugger.save_image(
-            pars['last_heat'], 'Heat after zoom back', Debugger.LogTypes.HEAT)
-
-        debugger.log_saved_images()
-
-        return last_heat

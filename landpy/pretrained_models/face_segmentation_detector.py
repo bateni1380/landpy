@@ -1,45 +1,36 @@
-# image.make_checkpoint()
+"""Face segmentation mapped back to the original canvas."""
 
-# image = image.reshape([128,128])
-# model = load_tflite('files/face_segm.tflite', debugger=debugger)
-# input_type = InferenceType([1,128,128,3], np.float32, does_divide=True)
-# output = inference_by_tflite(model, image, input_type, debugger=debugger)
-# heat = HeatLand(output.reshape([128,128]))
-
-# image.undo()
-# image.implant_filter(Filter('#ff0000', ratio=0.5), heat)
-
-from landpy.heat_land import HeatLand
-from landpy.tf_lite_model import TFLiteModel
 import numpy as np
-from landpy import ImageLand, Debugger, SquareMarks, MarksLand
-from .config import MODEL_URLS
 
-class FaceSegmentationDetector(TFLiteModel):  
-    def __init__(self, debugger: Debugger = Debugger(debug=False)):
-        super().__init__(MODEL_URLS['face_segmentation_detector'],
-                         input_type=ImageLand,
-                         output_type=HeatLand,
-                         debugger=debugger)
-        self.land_input_shape = ('RGB', (192,192,3), 'float32', True)
-        
-    @Debugger.method_decorator('Inferencing by model')
-    def detect_face_segmentation(self, input: ImageLand):
-        input.make_checkpoint()
-        
-        input = input.zoom(-0.1, save_trace=False)
-        input.to_rgb()
-        input.reshape((128,128), save_trace=False)
-                
-        input_data = np.expand_dims(input._flow_data, axis=0)
-        input_data = np.array(input_data, dtype=np.float32)/255.0
+from .. import HeatLand, ImageLand
+from ..tf_lite_model import TFLiteModel
+from .config import MODEL_SHA256, MODEL_URLS
 
-        self.input_type = np.ndarray
-        output = super().inference(input_data)
-        
-        heat = HeatLand(output.reshape([128,128]))
-        
-        input.undo()
-        
-        return heat
-    
+
+class FaceSegmentationDetector(TFLiteModel):
+    """Predict a face mask without modifying the supplied image."""
+
+    def __init__(self, debugger=None, **kwargs):
+        if kwargs.get("model_path") is None:
+            kwargs.setdefault("sha256", MODEL_SHA256["face_segmentation_detector"])
+        super().__init__(
+            MODEL_URLS["face_segmentation_detector"],
+            input_type=np.ndarray,
+            debugger=debugger,
+            **kwargs,
+        )
+
+    def detect_face_segmentation(self, input):
+        """Return a HeatLand resized to the input image's spatial dimensions."""
+        if not isinstance(input, ImageLand):
+            raise TypeError("input must be ImageLand.")
+        detail = self._interpreter.get_input_details()[0]
+        h, w = detail["shape"][1:3]
+        data = input.copy().to_rgb().reshape((h, w)).get_image()[None].astype(np.float32) / 255
+        output = self.inference(data)
+        if isinstance(output, list):
+            output = output[0]
+        heat = np.asarray(output).squeeze()
+        if heat.ndim != 2:
+            raise ValueError("Expected a single-channel segmentation output.")
+        return HeatLand(np.clip(heat, 0, 1), debugger=self._debugger).reshape(input.shape)

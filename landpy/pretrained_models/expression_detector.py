@@ -1,36 +1,33 @@
-from .config import MODEL_URLS
-from landpy.tf_model import TFModel
+"""The original seven-class facial-expression model."""
+
 import numpy as np
-from landpy import ImageLand, Debugger, SquareMarks
+
+from .. import ImageLand
+from ..tf_model import TFModel
+from .config import MODEL_SHA256, MODEL_URLS
+
 
 class ExpressionDetector(TFModel):
-    def __init__(self, debugger: Debugger = Debugger(debug=False)):
-        super().__init__(MODEL_URLS['expression_detector'],
-                         input_type=ImageLand,
-                         output_type=list,
-                         debugger=debugger)
-        self.output_labels = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
-    
-    @Debugger.method_decorator('Inferencing by model', ['ExpressionDetector.detect_expression', 'ExpressionDetector'])
-    def detect_expression(self, input: ImageLand):
-        input.make_checkpoint()
+    """Predict expression scores for an already cropped face.
 
-        rect = SquareMarks(0, max(input._flow_data.shape[1]/input._flow_data.shape[0],1), 
-                           0, max(input._flow_data.shape[0]/input._flow_data.shape[1],1))
-        input.zoom(rect, save_trace=False)
-        input.reshape((96,96), save_trace=False)
+    Labels describe this model's output classes, not a reliable measurement
+    of a person's feelings or intentions.
+    """
 
-        input._flow_data[...,0] = 0.299 * input._flow_data[..., 0] + 0.587 * input._flow_data[..., 1] + 0.114 * input._flow_data[..., 2]
-        input._flow_data[...,1] = input._flow_data[...,0]
-        input._flow_data[...,2] = input._flow_data[...,0]
+    def __init__(self, debugger=None, **kwargs):
+        if kwargs.get("model_path") is None:
+            kwargs.setdefault("sha256", MODEL_SHA256["expression_detector"])
+        super().__init__(
+            MODEL_URLS["expression_detector"], input_type=np.ndarray, debugger=debugger, **kwargs
+        )
+        self.output_labels = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
 
-        input_data = np.expand_dims(input._flow_data, axis=0)
-        input_data = np.array(input_data, dtype=int)
-
-        self.input_type = np.ndarray
-        output = super().inference(input_data)
-        self.input_type = ImageLand
-
-        input.undo()
-        return output
-
+    def detect_expression(self, input):
+        """Return (1, 7) scores; preserve source image and its history."""
+        if not isinstance(input, ImageLand):
+            raise TypeError("input must be ImageLand.")
+        _, h, w, channels = self._interpreter.input_shape
+        pixels = input.copy().to_rgb().reshape((h, w)).get_image().astype(np.float32)
+        gray = pixels @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
+        data = gray[..., None] if channels == 1 else np.repeat(gray[..., None], channels, axis=2)
+        return self.inference(data[None])
