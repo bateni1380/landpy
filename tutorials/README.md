@@ -36,7 +36,7 @@ Tutorials 7–8 require the TensorFlow extra and Python 3.10–3.13.
 | [8 face models and effects](8_face_models_and_effects.ipynb) | [Open in Colab](https://colab.research.google.com/github/bateni1380/landpy/blob/master/tutorials/8_face_models_and_effects.ipynb) |
 
 In Colab, select a CPU Python runtime and run all cells. The setup installs the
-pinned `landpy==0.1.0` release if needed. A first model run downloads about 37 MB
+pinned `landpy==0.1.1` release if needed. A first model run downloads about 37 MB
 of weights; later runs reuse the cache. Colab can require Google sign-in to run.
 
 Locally, install the package and notebook tools from the repository root:

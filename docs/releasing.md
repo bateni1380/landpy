@@ -7,7 +7,7 @@
 3. Run `python -m build` and `python -m twine check dist/*`. Install the wheel in
    a fresh environment from outside the source tree and test its public imports.
 4. Confirm that the model revision and checksum catalog are available publicly.
-5. Publish the source and create a GitHub release tagged `v0.1.0` on that commit.
+5. Publish the source and create a GitHub release tagged `vX.Y.Z` on that commit.
    The `publish.yml` workflow builds and uploads through PyPI Trusted Publishing.
 6. Verify PyPI's version metadata, wheel installation, and public Colab links.
 

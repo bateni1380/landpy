@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 — 2026-10-23
+
+- Fix PyPI description links and the cover image with absolute URLs.
+- Include the revised AR tutorial journey and retrace explanations.
+- No changes to package behavior.
+
 ## 0.1.0 — 2026-10-23
 
 Complete the original image/landmark/heat-flow design and restore an installable

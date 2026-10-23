@@ -10,7 +10,7 @@ from .marks_land import MarksLand
 from .quad_marks import QuadMarks
 from .square_marks import SquareMarks
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __all__ = [
     "Debugger",
     "Land",

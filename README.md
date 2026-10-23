@@ -2,7 +2,7 @@
 
 Build small augmented-reality effects in Python: **crop → edit → retrace**.
 
-![Landpy AR illustration: crop a face region, edit it, and return it](docs/assets/landpy-ar-cover.png)
+![Landpy AR illustration: crop a face region, edit it, and return it](https://raw.githubusercontent.com/bateni1380/landpy/master/docs/assets/landpy-ar-cover.png)
 
 Landpy helps you place face filters and transparent overlays on images. Work on
 a crop, use landmarks or masks to control the effect, then call `retrace()` to
@@ -10,7 +10,7 @@ bring the edited pixels back onto the original canvas. The crop remembers where
 it came from, so you do not have to calculate the paste coordinates yourself.
 Use checkpoints and `undo()` when you want to restore the exact earlier state.
 
-**[Start the illustrated tutorial journey](tutorials/1-images-and-coordinates.ipynb)**
+**[Start the illustrated tutorial journey](https://github.com/bateni1380/landpy/blob/master/tutorials/1-images-and-coordinates.ipynb)**
 for a preview of the face effect, a project map, and your first runnable edit.
 The cover above is an AI-generated illustration; the notebooks show executed
 results. These examples operate on individual images; live tracking and temporal
@@ -50,7 +50,7 @@ and return the same container; `copy()` and `+` produce independent objects.
 
 ## Learn step by step
 
-The [eight numbered tutorials](tutorials/README.md) contain saved outputs and
+The [eight numbered tutorials](https://github.com/bateni1380/landpy/blob/master/tutorials/README.md) contain saved outputs and
 checks. Each has an **Open in Colab** link; no separate notebook hosting account
 is needed to open them. Start with
 [1. Images and coordinates](https://colab.research.google.com/github/bateni1380/landpy/blob/master/tutorials/1-images-and-coordinates.ipynb).
@@ -67,7 +67,7 @@ is needed to open them. Start with
 | `Filter` | Mask-weighted color blending or a custom function |
 | `Debugger` | Categorized timing logs and visual snapshots |
 
-Use Python's `help(ImageLand.zoom)` or the [API guide](docs/api.md) for details.
+Use Python's `help(ImageLand.zoom)` or the [API guide](https://github.com/bateni1380/landpy/blob/master/docs/api.md) for details.
 
 ## History has two meanings
 
@@ -101,7 +101,7 @@ legacy 468-point weights remain supported with `model_path=...`.
 Model files are pinned to a [verified companion repository revision](https://github.com/bateni1380/pretrained_models/tree/83c1ad107a7ab3913f98ed116729f3ace4061f07).
 Downloads go to `~/.cache/landpy/models`; set `LANDPY_MODEL_DIR` to change it.
 Each detector accepts `model_path`, `cache_dir` and `sha256` keyword arguments.
-See [model contracts and provenance](docs/models.md), especially the incomplete
+See [model contracts and provenance](https://github.com/bateni1380/landpy/blob/master/docs/models.md), especially the incomplete
 provenance of the original segmentation and expression weights.
 
 `FaceTracker` detects still images independently; it does not perform temporal
@@ -122,8 +122,8 @@ python -m build
 python -m twine check dist/*
 ```
 
-[Contributing](CONTRIBUTING.md) · [Migration and release notes](CHANGELOG.md) ·
-[Release procedure](docs/releasing.md) · [Original design audit](docs/design.md)
+[Contributing](https://github.com/bateni1380/landpy/blob/master/CONTRIBUTING.md) · [Migration and release notes](https://github.com/bateni1380/landpy/blob/master/CHANGELOG.md) ·
+[Release procedure](https://github.com/bateni1380/landpy/blob/master/docs/releasing.md) · [Original design audit](https://github.com/bateni1380/landpy/blob/master/docs/design.md)
 
 Code is MIT licensed. Third-party weights and the original example photo have
 separate provenance; see the model and asset documentation.
