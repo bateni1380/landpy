@@ -16,3 +16,4 @@ dist/
 htmlcov/
 .model-cache/
 .notebook-previews/
+.idea/

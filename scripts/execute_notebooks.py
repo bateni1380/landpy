@@ -1,6 +1,7 @@
 """Execute and save every numbered tutorial using the selected Jupyter kernel."""
 
 import argparse
+import re
 from pathlib import Path
 
 import nbformat
@@ -11,8 +12,8 @@ parser.add_argument("--kernel", default="python3")
 parser.add_argument("--start", type=int, default=1)
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
-for path in sorted((root / "tutorials").glob("[1-9]-*.ipynb")):
-    if int(path.name.split("-")[0]) < args.start:
+for path in sorted((root / "tutorials").glob("[1-9][-_]*.ipynb")):
+    if int(re.match(r"(\d+)[-_]", path.name).group(1)) < args.start:
         continue
     print("Executing", path.name, flush=True)
     notebook = nbformat.read(path, as_version=4)

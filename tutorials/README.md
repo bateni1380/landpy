@@ -13,7 +13,7 @@ external files; tutorials 7–8 need the TensorFlow extra and Python 3.10–3.13
 | [5 crops and perspective](5-crops-and-perspective.ipynb) | [Open in Colab](https://colab.research.google.com/github/bateni1380/landpy/blob/master/tutorials/5-crops-and-perspective.ipynb) |
 | [6 image compositing](6-image-compositing.ipynb) | [Open in Colab](https://colab.research.google.com/github/bateni1380/landpy/blob/master/tutorials/6-image-compositing.ipynb) |
 | [7 model wrappers](7-model-wrappers.ipynb) | [Open in Colab](https://colab.research.google.com/github/bateni1380/landpy/blob/master/tutorials/7-model-wrappers.ipynb) |
-| [8 face models and effects](8-face-models-and-effects.ipynb) | [Open in Colab](https://colab.research.google.com/github/bateni1380/landpy/blob/master/tutorials/8-face-models-and-effects.ipynb) |
+| [8 face models and effects](8_face_models_and_effects.ipynb) | [Open in Colab](https://colab.research.google.com/github/bateni1380/landpy/blob/master/tutorials/8_face_models_and_effects.ipynb) |
 
 In Colab, select a CPU Python runtime and run all cells. The setup installs the
 pinned `landpy==0.1.0` release if needed. A first model run downloads about 37 MB
