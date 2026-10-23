@@ -103,7 +103,7 @@ def test_polygon_uses_row_column_order():
 def test_rectangle_and_vector_geometry():
     box = SquareMarks.relative(0.2, 0.8, 0.25, 0.75, shape=(10, 20))
     assert box.area() == 60
-    assert box.center() == [5, 10]
+    np.testing.assert_allclose(box.center(), [5, 10], atol=1e-12)
     assert box.copy().expand(2).area() == 240
     assert box.subscription(SquareMarks(0, 4, 0, 8, shape=(10, 20))).area() == 6
     assert box.subscription(SquareMarks(0, 1, 0, 1, shape=(10, 20))) is None
