@@ -1,8 +1,28 @@
 # Landpy tutorials
 
-Run these notebooks in order. Each stands alone and includes setup, explanations,
-rendered results and assertions. Tutorials 1–6 use generated images and need no
-external files; tutorials 7–8 need the TensorFlow extra and Python 3.10–3.13.
+## Build an AR effect, then retrace it home 🪄
+
+Start with **[notebook 1](1-images-and-coordinates.ipynb)**: see the face effect
+we are working toward, understand the project map, and make your first edit.
+The core idea is simple: crop a region, edit it, then `retrace()` to put the
+edited pixels back in the original image. Each lesson adds one useful piece.
+
+| Lesson | The question it answers |
+| --- | --- |
+| 1 · First edit | What can I build, and how does retrace help? |
+| 2 · Placement | Where should an effect go? |
+| 3 · Masks | Which pixels should change, and by how much? |
+| 4 · History | How is retrace different from undo, and what happened inside? |
+| 5 · Perspective | How does an edited crop find its way back to a tilted surface? |
+| 6 · Overlays | How do I place a transparent AR sticker? |
+| 7 · Models | How do predictions enter the workflow? (Optional technical detour.) |
+| 8 · Face effect | How do all the pieces produce the previewed effect? |
+
+Each notebook stands alone with setup, saved visuals, short checks and a small
+experiment to try. Debugger snapshots expose useful intermediate steps without
+burying the lesson in plotting code. Tutorials 1–6 use generated canvases and
+need no external inputs; notebook 1 includes a saved face-effect preview.
+Tutorials 7–8 require the TensorFlow extra and Python 3.10–3.13.
 
 | Notebook | Run in Colab |
 | --- | --- |

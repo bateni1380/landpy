@@ -1,11 +1,20 @@
 # Landpy
 
-Image, landmark and heat-map flows for small augmented-reality experiments.
+Build small augmented-reality effects in Python: **crop → edit → retrace**.
 
-Landpy brings an old experiment to a usable stopping point: crop an image,
-transform its landmarks, build a mask, apply a filter, and carry the edit back
-to the original canvas. It includes reversible geometry, exact checkpoints,
-optional debugging, and wrappers for the project's face models.
+![Landpy AR illustration: crop a face region, edit it, and return it](docs/assets/landpy-ar-cover.png)
+
+Landpy helps you place face filters and transparent overlays on images. Work on
+a crop, use landmarks or masks to control the effect, then call `retrace()` to
+bring the edited pixels back onto the original canvas. The crop remembers where
+it came from, so you do not have to calculate the paste coordinates yourself.
+Use checkpoints and `undo()` when you want to restore the exact earlier state.
+
+**[Start the illustrated tutorial journey](tutorials/1-images-and-coordinates.ipynb)**
+for a preview of the face effect, a project map, and your first runnable edit.
+The cover above is an AI-generated illustration; the notebooks show executed
+results. These examples operate on individual images; live tracking and temporal
+smoothing are outside the package's scope.
 
 ```bash
 pip install landpy

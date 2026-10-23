@@ -1,17 +1,19 @@
-Years ago, I started Landpy—a small Python package for image processing and AR experiments. Then life got busy, and it stayed unfinished.
+🪄 Build an AR effect on a small part of an image—and let Landpy bring the edit back home.
 
-I finally came back to close that loop.
+That is the idea behind Landpy, my Python package for small augmented-reality experiments: crop a face, use landmarks to select a region, add a color effect or transparent overlay, and return the result to the original image.
 
-Landpy 0.1.0 brings the original ideas together: images, landmarks, heat maps, masked filters, perspective overlays, categorized debugging, and a transformation history that lets you crop a region, edit it, and return the result to the original image. Exact checkpoints handle undo and redo.
+⏪ One of its core ideas is retrace(): record a crop, edit it, then retrace it to place the edited pixels back on the original canvas. It keeps the edit. Checkpoint undo is there when you want the original state back.
 
-I cleaned up the package, added regression tests and docstrings, refreshed the compatible face mesh model, and wrote eight step-by-step notebooks with runnable examples—from basic image operations to a face-filter workflow.
+I started this project years ago and never found the time to finish it. With AI’s help, I finally could. Thank you, ChatGPT, for helping me complete the code, tests, documentation, and tutorial journey. 🤖❤️
 
-Install: pip install landpy
+📓 The eight notebooks start with a preview of a face effect, then build the pieces step by step. You can see masks, landmarks, and debugger snapshots along the way—and finish with the full crop → edit → retrace workflow.
 
-GitHub: https://github.com/bateni1380/landpy
-Tutorials with “Open in Colab” links: https://github.com/bateni1380/landpy/tree/master/tutorials
-PyPI: https://pypi.org/project/landpy/
+It is a small toolkit for experimenting with image-based AR effects, with runnable examples and room to try your own ideas. I would love to see what you make with it. ✨
 
-It feels good to give an old idea a finished home. If you try it, I’d love to hear what you build or where the examples could be clearer.
+🚀 Start here (Colab): https://colab.research.google.com/github/bateni1380/landpy/blob/master/tutorials/1-images-and-coordinates.ipynb
+📚 All tutorials: https://github.com/bateni1380/landpy/tree/master/tutorials
+💻 GitHub: https://github.com/bateni1380/landpy
+📦 Install: pip install landpy
+https://pypi.org/project/landpy/
 
-#Python #OpenSource #ComputerVision #ImageProcessing #AugmentedReality
+#Python #OpenSource #AugmentedReality #ComputerVision #ImageProcessing #AI
